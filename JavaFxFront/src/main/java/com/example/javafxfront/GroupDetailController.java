@@ -1,0 +1,351 @@
+package com.example.javafxfront;
+
+import javafx.animation.ScaleTransition;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Optional;
+
+public class GroupDetailController {
+    @FXML private Label groupNameLabel;
+    @FXML private Label groupSpecializationLabel;
+    @FXML private Label studentCountLabel;
+    @FXML private Label scheduleCountLabel;
+
+    // Student form
+    @FXML private TextField firstNameField;
+    @FXML private TextField lastNameField;
+    @FXML private TextField indexNumberField;
+    @FXML private Button addStudentButton;
+
+    // Schedule form
+    @FXML private TextField subjectField;
+    @FXML private TextField classroomField;
+    @FXML private DatePicker datePicker;
+    @FXML private TextField startTimeField;
+    @FXML private TextField endTimeField;
+    @FXML private TextField instructorField;
+    @FXML private TextArea notesArea;
+    @FXML private Button addScheduleButton;
+
+    // Lists
+    @FXML private ListView<Student> studentsListView;
+    @FXML private ListView<ClassSchedule> scheduleListView;
+
+    // Action buttons
+    @FXML private Button removeStudentButton;
+    @FXML private Button removeScheduleButton;
+    @FXML private Button backButton;
+
+    private Group currentGroup;
+    private ObservableList<Student> students;
+    private ObservableList<ClassSchedule> schedules;
+
+    @FXML
+    protected void initialize() {
+        // Inicjalizacja list
+        students = FXCollections.observableArrayList();
+        schedules = FXCollections.observableArrayList();
+
+        studentsListView.setItems(students);
+        scheduleListView.setItems(schedules);
+
+        // Konfiguracja ListView
+        studentsListView.setCellFactory(listView -> new StudentListCell());
+        scheduleListView.setCellFactory(listView -> new ScheduleListCell());
+
+        // Nasłuchiwanie zmian w selekcji
+        studentsListView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            removeStudentButton.setDisable(newSelection == null);
+        });
+
+        scheduleListView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            removeScheduleButton.setDisable(newSelection == null);
+        });
+
+        // Początkowy stan przycisków
+        removeStudentButton.setDisable(true);
+        removeScheduleButton.setDisable(true);
+
+        // Placeholder tekst dla pól czasu
+        startTimeField.setPromptText("HH:MM (np. 10:15)");
+        endTimeField.setPromptText("HH:MM (np. 11:45)");
+
+        // Dodaj listener do pola numeru indeksu - tylko cyfry, max 6 znaków
+        indexNumberField.textProperty().addListener((observable, oldValue, newValue) -> {
+            // Usuń wszystko co nie jest cyfrą
+            String digitsOnly = newValue.replaceAll("[^0-9]", "");
+            // Ogranicz do 6 cyfr
+            if (digitsOnly.length() > 6) {
+                digitsOnly = digitsOnly.substring(0, 6);
+            }
+            // Ustaw nową wartość tylko jeśli się zmieniła
+            if (!digitsOnly.equals(newValue)) {
+                indexNumberField.setText(digitsOnly);
+            }
+        });
+    }
+
+    public void setGroup(Group group) {
+        this.currentGroup = group;
+        updateGroupInfo();
+        loadSampleData();
+    }
+
+    private void updateGroupInfo() {
+        if (currentGroup != null) {
+            groupNameLabel.setText(currentGroup.getName());
+            groupSpecializationLabel.setText(currentGroup.getSpecialization());
+            updateCounts();
+        }
+    }
+
+    private void updateCounts() {
+        studentCountLabel.setText("Liczba studentów: " + students.size());
+        scheduleCountLabel.setText("Liczba zajęć: " + schedules.size());
+    }
+
+    private void loadSampleData() {
+        // Aplikacja startuje bez przykładowych studentów i zajęć
+        updateCounts();
+    }
+
+    @FXML
+    protected void onAddStudentClick() {
+        String firstName = firstNameField.getText().trim();
+        String lastName = lastNameField.getText().trim();
+        String indexNumber = indexNumberField.getText().trim();
+
+        if (firstName.isEmpty() || lastName.isEmpty() || indexNumber.isEmpty()) {
+            showAlert("Błąd", "Wszystkie pola studenta muszą być wypełnione!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        // Walidacja numeru indeksu - musi być dokładnie 6 cyfr
+        if (!indexNumber.matches("\\d{6}")) {
+            showAlert("Błąd", "Numer indeksu musi składać się z dokładnie 6 cyfr!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        // Sprawdzenie czy student o takim numerze indeksu już istnieje
+        boolean indexExists = students.stream().anyMatch(s -> s.getIndexNumber().equals(indexNumber));
+        if (indexExists) {
+            showAlert("Błąd", "Student o takim numerze indeksu już istnieje!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        // Dodanie studenta z przypisaną grupą
+        Student newStudent = new Student(firstName, lastName, indexNumber, currentGroup.getName());
+        students.add(newStudent);
+
+        // Animacja i czyszczenie
+        animateButton(addStudentButton);
+        clearStudentForm();
+        updateCounts();
+
+        showAlert("Sukces", "Student " + newStudent.getFullName() +
+                        " został dodany do grupy " + currentGroup.getName() + "!",
+                Alert.AlertType.INFORMATION);
+    }
+
+    @FXML
+    protected void onAddScheduleClick() {
+        String subject = subjectField.getText().trim();
+        String classroom = classroomField.getText().trim();
+        LocalDate date = datePicker.getValue();
+        String startTimeText = startTimeField.getText().trim();
+        String endTimeText = endTimeField.getText().trim();
+        String instructor = instructorField.getText().trim();
+        String notes = notesArea.getText().trim();
+
+        if (subject.isEmpty() || classroom.isEmpty() || date == null ||
+                startTimeText.isEmpty() || endTimeText.isEmpty() || instructor.isEmpty()) {
+            showAlert("Błąd", "Wszystkie wymagane pola zajęć muszą być wypełnione!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        try {
+            LocalTime startTime = LocalTime.parse(startTimeText);
+            LocalTime endTime = LocalTime.parse(endTimeText);
+
+            if (startTime.isAfter(endTime)) {
+                showAlert("Błąd", "Czas rozpoczęcia musi być wcześniejszy niż czas zakończenia!", Alert.AlertType.WARNING);
+                return;
+            }
+
+            LocalDateTime startDateTime = LocalDateTime.of(date, startTime);
+            LocalDateTime endDateTime = LocalDateTime.of(date, endTime);
+
+            // Dodanie zajęć
+            ClassSchedule newSchedule = new ClassSchedule(subject, classroom, startDateTime,
+                    endDateTime, instructor, notes);
+            schedules.add(newSchedule);
+
+            // Animacja i czyszczenie
+            animateButton(addScheduleButton);
+            clearScheduleForm();
+            updateCounts();
+
+            showAlert("Sukces", "Zajęcia '" + subject + "' zostały dodane!", Alert.AlertType.INFORMATION);
+
+        } catch (Exception e) {
+            showAlert("Błąd", "Nieprawidłowy format czasu! Użyj formatu HH:MM (np. 10:15)", Alert.AlertType.WARNING);
+        }
+    }
+
+    @FXML
+    protected void onRemoveStudentClick() {
+        Student selectedStudent = studentsListView.getSelectionModel().getSelectedItem();
+        if (selectedStudent != null) {
+            Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmAlert.setTitle("Potwierdzenie usunięcia");
+            confirmAlert.setHeaderText("Czy na pewno chcesz usunąć studenta?");
+            confirmAlert.setContentText("Student: " + selectedStudent.getFullName() +
+                    "\nNr indeksu: " + selectedStudent.getIndexNumber() +
+                    "\nGrupa: " + selectedStudent.getGroupName() +
+                    "\n\nTa operacja jest nieodwracalna!");
+
+            Optional<ButtonType> result = confirmAlert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                students.remove(selectedStudent);
+                animateButton(removeStudentButton);
+                updateCounts();
+
+                showAlert("Usunięto", "Student " + selectedStudent.getFullName() + " został usunięty.",
+                        Alert.AlertType.INFORMATION);
+            }
+        }
+    }
+
+    @FXML
+    protected void onRemoveScheduleClick() {
+        ClassSchedule selectedSchedule = scheduleListView.getSelectionModel().getSelectedItem();
+        if (selectedSchedule != null) {
+            Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmAlert.setTitle("Potwierdzenie usunięcia");
+            confirmAlert.setHeaderText("Czy na pewno chcesz usunąć zajęcia?");
+            confirmAlert.setContentText("Zajęcia: " + selectedSchedule.getSubject() +
+                    "\nTermin: " + selectedSchedule.getFormattedTimeRange() +
+                    "\n\nTa operacja jest nieodwracalna!");
+
+            Optional<ButtonType> result = confirmAlert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                schedules.remove(selectedSchedule);
+                animateButton(removeScheduleButton);
+                updateCounts();
+
+                showAlert("Usunięto", "Zajęcia '" + selectedSchedule.getSubject() + "' zostały usunięte.",
+                        Alert.AlertType.INFORMATION);
+            }
+        }
+    }
+
+    @FXML
+    protected void onBackClick() {
+        // Zamknięcie okna
+        Stage stage = (Stage) backButton.getScene().getWindow();
+        stage.close();
+    }
+
+    private void clearStudentForm() {
+        firstNameField.clear();
+        lastNameField.clear();
+        indexNumberField.clear();
+    }
+
+    private void clearScheduleForm() {
+        subjectField.clear();
+        classroomField.clear();
+        datePicker.setValue(null);
+        startTimeField.clear();
+        endTimeField.clear();
+        instructorField.clear();
+        notesArea.clear();
+    }
+
+    private void animateButton(Button button) {
+        ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(100), button);
+        scaleTransition.setFromX(1.0);
+        scaleTransition.setFromY(1.0);
+        scaleTransition.setToX(0.95);
+        scaleTransition.setToY(0.95);
+        scaleTransition.setAutoReverse(true);
+        scaleTransition.setCycleCount(2);
+        scaleTransition.play();
+    }
+
+    private void showAlert(String title, String message, Alert.AlertType type) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    // Klasy dla customowych komórek ListView
+    private class StudentListCell extends ListCell<Student> {
+        @Override
+        protected void updateItem(Student student, boolean empty) {
+            super.updateItem(student, empty);
+
+            if (empty || student == null) {
+                setGraphic(null);
+                setText(null);
+            } else {
+                VBox cellContent = new VBox(3);
+                cellContent.getStyleClass().add("student-cell");
+
+                Label nameLabel = new Label(student.getFullName());
+                nameLabel.getStyleClass().add("student-name");
+
+                Label indexLabel = new Label("Nr indeksu: " + student.getIndexNumber());
+                indexLabel.getStyleClass().add("student-index");
+
+                Label groupLabel = new Label("Grupa: " + student.getGroupName());
+                groupLabel.getStyleClass().add("student-group");
+
+                Label dateLabel = new Label("Dodano: " + student.getFormattedDate());
+                dateLabel.getStyleClass().add("student-date");
+
+                cellContent.getChildren().addAll(nameLabel, indexLabel, groupLabel, dateLabel);
+                setGraphic(cellContent);
+                setText(null);
+            }
+        }
+    }
+
+    private class ScheduleListCell extends ListCell<ClassSchedule> {
+        @Override
+        protected void updateItem(ClassSchedule schedule, boolean empty) {
+            super.updateItem(schedule, empty);
+
+            if (empty || schedule == null) {
+                setGraphic(null);
+                setText(null);
+            } else {
+                VBox cellContent = new VBox(3);
+                cellContent.getStyleClass().add("schedule-cell");
+
+                Label subjectLabel = new Label(schedule.getSubject());
+                subjectLabel.getStyleClass().add("schedule-subject");
+
+                Label timeLabel = new Label(schedule.getFormattedTimeRange());
+                timeLabel.getStyleClass().add("schedule-time");
+
+                Label roomLabel = new Label("Sala: " + schedule.getClassroom() + " • " + schedule.getInstructor());
+                roomLabel.getStyleClass().add("schedule-details");
+
+                cellContent.getChildren().addAll(subjectLabel, timeLabel, roomLabel);
+                setGraphic(cellContent);
+                setText(null);
+            }
+        }
+    }
+}

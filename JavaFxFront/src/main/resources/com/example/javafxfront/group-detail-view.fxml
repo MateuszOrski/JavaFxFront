@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.javafxfront.GroupDetailController">
+    <top>
+        <!-- Header with group info -->
+        <VBox styleClass="group-header">
+            <padding>
+                <Insets bottom="20.0" left="30.0" right="30.0" top="20.0" />
+            </padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="20.0">
+                <VBox spacing="5.0">
+                    <Label fx:id="groupNameLabel" styleClass="group-header-name" text="Nazwa Grupy">
+                        <font>
+                            <Font name="System Bold" size="24.0" />
+                        </font>
+                    </Label>
+                    <Label fx:id="groupSpecializationLabel" styleClass="group-header-spec" text="Specjalizacja">
+                        <font>
+                            <Font size="16.0" />
+                        </font>
+                    </Label>
+                </VBox>
+
+                <Region HBox.hgrow="ALWAYS" />
+
+                <VBox alignment="CENTER_RIGHT" spacing="5.0">
+                    <Label fx:id="studentCountLabel" styleClass="count-badge" text="Liczba studentów: 0">
+                        <font>
+                            <Font size="12.0" />
+                        </font>
+                    </Label>
+                    <Label fx:id="scheduleCountLabel" styleClass="count-badge" text="Liczba zajęć: 0">
+                        <font>
+                            <Font size="12.0" />
+                        </font>
+                    </Label>
+                </VBox>
+
+                <Button fx:id="backButton" mnemonicParsing="false" onAction="#onBackClick"
+                        styleClass="secondary-button" text="← Powrót" />
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" fitToHeight="true" styleClass="scroll-pane">
+            <VBox spacing="20.0" styleClass="detail-container">
+                <padding>
+                    <Insets bottom="30.0" left="30.0" right="30.0" top="10.0" />
+                </padding>
+
+                <!-- Main content with tabs -->
+                <TabPane styleClass="main-tabs" tabClosingPolicy="UNAVAILABLE">
+
+                    <!-- Students Tab -->
+                    <Tab text="Studenci">
+                        <HBox spacing="20.0" alignment="TOP_CENTER">
+
+                            <!-- Add Student Form -->
+                            <VBox spacing="15.0" styleClass="form-card" maxWidth="350.0" minWidth="300.0">
+                                <padding>
+                                    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                                </padding>
+
+                                <Label styleClass="form-title" text="Dodaj studenta">
+                                    <font>
+                                        <Font name="System Bold" size="16.0" />
+                                    </font>
+                                </Label>
+
+                                <VBox spacing="10.0">
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Imię:" />
+                                        <TextField fx:id="firstNameField" promptText="Imię studenta" styleClass="modern-field" />
+                                    </VBox>
+
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Nazwisko:" />
+                                        <TextField fx:id="lastNameField" promptText="Nazwisko studenta" styleClass="modern-field" />
+                                    </VBox>
+
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Nr indeksu:" />
+                                        <TextField fx:id="indexNumberField" promptText="6 cyfr (np. 123456)"
+                                                   styleClass="modern-field" />
+                                    </VBox>
+                                </VBox>
+
+                                <Button fx:id="addStudentButton" mnemonicParsing="false" onAction="#onAddStudentClick"
+                                        styleClass="primary-button" text="Dodaj studenta" maxWidth="Infinity" />
+                            </VBox>
+
+                            <!-- Students List -->
+                            <VBox spacing="15.0" styleClass="list-card" VBox.vgrow="ALWAYS" minWidth="400.0">
+                                <padding>
+                                    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                                </padding>
+
+                                <Label styleClass="form-title" text="Lista studentów">
+                                    <font>
+                                        <Font name="System Bold" size="16.0" />
+                                    </font>
+                                </Label>
+
+                                <ListView fx:id="studentsListView" styleClass="modern-list"
+                                          VBox.vgrow="ALWAYS" minHeight="300.0" maxHeight="400.0" />
+
+                                <HBox alignment="CENTER" spacing="10.0">
+                                    <Button fx:id="removeStudentButton" mnemonicParsing="false" onAction="#onRemoveStudentClick"
+                                            styleClass="danger-button" text="Usuń studenta" />
+                                </HBox>
+                            </VBox>
+                        </HBox>
+                    </Tab>
+
+                    <!-- Schedule Tab -->
+                    <Tab text="Plan zajęć">
+                        <HBox spacing="20.0" alignment="TOP_CENTER">
+
+                            <!-- Add Schedule Form -->
+                            <VBox spacing="15.0" styleClass="form-card" maxWidth="350.0" minWidth="300.0">
+                                <padding>
+                                    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                                </padding>
+
+                                <Label styleClass="form-title" text="Dodaj zajęcia">
+                                    <font>
+                                        <Font name="System Bold" size="16.0" />
+                                    </font>
+                                </Label>
+
+                                <VBox spacing="10.0">
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Przedmiot:" />
+                                        <TextField fx:id="subjectField" promptText="np. Programowanie w Javie" styleClass="modern-field" />
+                                    </VBox>
+
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Sala:" />
+                                        <TextField fx:id="classroomField" promptText="np. Sala 101" styleClass="modern-field" />
+                                    </VBox>
+
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Data:" />
+                                        <DatePicker fx:id="datePicker" styleClass="modern-date-picker" />
+                                    </VBox>
+
+                                    <HBox spacing="10.0">
+                                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="field-label" text="Od:" />
+                                            <TextField fx:id="startTimeField" promptText="HH:MM" styleClass="modern-field" />
+                                        </VBox>
+                                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="field-label" text="Do:" />
+                                            <TextField fx:id="endTimeField" promptText="HH:MM" styleClass="modern-field" />
+                                        </VBox>
+                                    </HBox>
+
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Prowadzący:" />
+                                        <TextField fx:id="instructorField" promptText="np. Dr Jan Kowalski" styleClass="modern-field" />
+                                    </VBox>
+
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Uwagi:" />
+                                        <TextArea fx:id="notesArea" promptText="Dodatkowe informacje (opcjonalne)"
+                                                  styleClass="modern-textarea" prefRowCount="3" maxHeight="80.0" />
+                                    </VBox>
+                                </VBox>
+
+                                <Button fx:id="addScheduleButton" mnemonicParsing="false" onAction="#onAddScheduleClick"
+                                        styleClass="primary-button" text="Dodaj zajęcia" maxWidth="Infinity" />
+                            </VBox>
+
+                            <!-- Schedule List -->
+                            <VBox spacing="15.0" styleClass="list-card" VBox.vgrow="ALWAYS" minWidth="400.0">
+                                <padding>
+                                    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                                </padding>
+
+                                <Label styleClass="form-title" text="Harmonogram zajęć">
+                                    <font>
+                                        <Font name="System Bold" size="16.0" />
+                                    </font>
+                                </Label>
+
+                                <ListView fx:id="scheduleListView" styleClass="modern-list"
+                                          VBox.vgrow="ALWAYS" minHeight="300.0" maxHeight="400.0" />
+
+                                <HBox alignment="CENTER" spacing="10.0">
+                                    <Button fx:id="removeScheduleButton" mnemonicParsing="false" onAction="#onRemoveScheduleClick"
+                                            styleClass="danger-button" text="Usuń zajęcia" />
+                                </HBox>
+                            </VBox>
+                        </HBox>
+                    </Tab>
+                </TabPane>
+            </VBox>
+        </ScrollPane>
+    </center>
+</BorderPane>

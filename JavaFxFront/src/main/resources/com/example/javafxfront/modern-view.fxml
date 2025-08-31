@@ -66,6 +66,61 @@
                                 styleClass="primary-button" text="Dodaj grupę" maxWidth="Infinity" />
                     </VBox>
 
+                    <!-- Add Student Card -->
+                    <VBox fx:id="addStudentCard" alignment="TOP_CENTER" spacing="20.0" styleClass="main-card" maxWidth="400.0" minWidth="350.0">
+                        <padding>
+                            <Insets bottom="25.0" left="25.0" right="25.0" top="25.0" />
+                        </padding>
+
+                        <Label styleClass="card-title" text="Dodaj studenta">
+                            <font>
+                                <Font name="System Bold" size="18.0" />
+                            </font>
+                        </Label>
+
+                        <VBox spacing="15.0" styleClass="form-container">
+                            <VBox spacing="5.0">
+                                <Label styleClass="field-label" text="Imię:">
+                                    <font>
+                                        <Font name="System Bold" size="12.0" />
+                                    </font>
+                                </Label>
+                                <TextField fx:id="studentFirstNameField" promptText="Imię studenta" styleClass="modern-field" />
+                            </VBox>
+
+                            <VBox spacing="5.0">
+                                <Label styleClass="field-label" text="Nazwisko:">
+                                    <font>
+                                        <Font name="System Bold" size="12.0" />
+                                    </font>
+                                </Label>
+                                <TextField fx:id="studentLastNameField" promptText="Nazwisko studenta" styleClass="modern-field" />
+                            </VBox>
+
+                            <VBox spacing="5.0">
+                                <Label styleClass="field-label" text="Nr indeksu:">
+                                    <font>
+                                        <Font name="System Bold" size="12.0" />
+                                    </font>
+                                </Label>
+                                <TextField fx:id="studentIndexField" promptText="6 cyfr (np. 123456)" styleClass="modern-field" />
+                            </VBox>
+
+                            <VBox spacing="5.0">
+                                <Label styleClass="field-label" text="Grupa (opcjonalnie):">
+                                    <font>
+                                        <Font name="System Bold" size="12.0" />
+                                    </font>
+                                </Label>
+                                <ComboBox fx:id="groupSelectionComboBox" promptText="Wybierz grupę lub zostaw puste"
+                                          styleClass="modern-combobox" maxWidth="Infinity" />
+                            </VBox>
+                        </VBox>
+
+                        <Button fx:id="addStudentGlobalButton" mnemonicParsing="false" onAction="#onAddStudentGlobalClick"
+                                styleClass="primary-button" text="Dodaj studenta" maxWidth="Infinity" />
+                    </VBox>
+
                     <!-- Groups List Card -->
                     <VBox fx:id="groupsCard" alignment="TOP_CENTER" spacing="20.0" styleClass="main-card"
                           maxWidth="500.0" minWidth="400.0" VBox.vgrow="ALWAYS">
@@ -150,12 +205,12 @@
                                     <Font name="System Bold" size="20.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-title" text="Wybierz grupę">
+                            <Label styleClass="instruction-title" text="Dodaj studenta">
                                 <font>
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="Kliknij na grupę z listy, aby ją wybrać"
+                            <Label styleClass="instruction-desc" text="Wypełnij dane studenta i przypisz do grupy"
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -169,7 +224,7 @@
                                     <Font name="System Bold" size="20.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-title" text="Wykonaj akcję">
+                            <Label styleClass="instruction-title" text="Zarządzaj grupami">
                                 <font>
                                     <Font name="System Bold" size="14.0" />
                                 </font>

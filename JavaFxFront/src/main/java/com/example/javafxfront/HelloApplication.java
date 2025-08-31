@@ -11,14 +11,14 @@ public class HelloApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("modern-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 1000, 700);
+        Scene scene = new Scene(fxmlLoader.load(), 1400, 800);
 
         // Dodanie CSS stylów
         scene.getStylesheets().add(getClass().getResource("styles.css").toExternalForm());
 
         stage.setTitle("Dziennik Online - Zarządzanie Grupami");
         stage.setScene(scene);
-        stage.setMinWidth(800);
+        stage.setMinWidth(900);
         stage.setMinHeight(600);
         stage.show();
     }

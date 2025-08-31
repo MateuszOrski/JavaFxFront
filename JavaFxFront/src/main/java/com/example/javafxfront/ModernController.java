@@ -4,8 +4,12 @@ import javafx.animation.ScaleTransition;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import java.util.Optional;
 
@@ -15,6 +19,12 @@ public class ModernController {
     @FXML private TextField groupNameField;
     @FXML private TextField specializationField;
     @FXML private Button addGroupButton;
+    @FXML private TextField studentFirstNameField;
+    @FXML private TextField studentLastNameField;
+    @FXML private TextField studentIndexField;
+    @FXML private ComboBox<String> groupSelectionComboBox;
+    @FXML private Button addStudentGlobalButton;
+    @FXML private VBox addStudentCard;
     @FXML private ListView<Group> groupsListView;
     @FXML private Button enterGroupButton;
     @FXML private Button deleteGroupButton;
@@ -50,6 +60,8 @@ public class ModernController {
 
         updateGroupCount();
         checkServerConnection();
+        setupStudentIndexValidation();
+        updateGroupComboBox();
     }
 
     @FXML
@@ -84,6 +96,9 @@ public class ModernController {
 
         showAlert("Sukces", "Grupa '" + groupName + "' została dodana pomyślnie!", Alert.AlertType.INFORMATION);
 
+        // Aktualizuj ComboBox z grupami
+        updateGroupComboBox();
+
         // Opcjonalnie: wyślij też na serwer
         // sendGroupToServer(newGroup);
     }
@@ -94,11 +109,8 @@ public class ModernController {
         if (selectedGroup != null) {
             animateButton(enterGroupButton);
 
-            // Tu można dodać logikę przejścia do widoku grupy
-            showAlert("Wejście do grupy",
-                    "Wchodzisz do grupy: " + selectedGroup.getName() +
-                            "\nSpecjalizacja: " + selectedGroup.getSpecialization(),
-                    Alert.AlertType.INFORMATION);
+            // Otwórz nowe okno z detalami grupy
+            openGroupDetailWindow(selectedGroup);
         }
     }
 
@@ -127,6 +139,9 @@ public class ModernController {
 
                 showAlert("Usunięto", "Grupa '" + selectedGroup.getName() + "' została usunięta.",
                         Alert.AlertType.INFORMATION);
+
+                // Aktualizuj ComboBox z grupami
+                updateGroupComboBox();
             }
         }
     }
@@ -134,6 +149,74 @@ public class ModernController {
     @FXML
     protected void onRefreshClick() {
         loadGroupsFromServer();
+    }
+
+    @FXML
+    protected void onAddStudentGlobalClick() {
+        // TODO: Implementacja dodawania studenta do globalnej bazy
+        String firstName = studentFirstNameField.getText().trim();
+        String lastName = studentLastNameField.getText().trim();
+        String indexNumber = studentIndexField.getText().trim();
+        String selectedGroup = groupSelectionComboBox.getValue();
+
+        if (firstName.isEmpty() || lastName.isEmpty() || indexNumber.isEmpty()) {
+            showAlert("Błąd", "Imię, nazwisko i numer indeksu muszą być wypełnione!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        if (!indexNumber.matches("\\d{6}")) {
+            showAlert("Błąd", "Numer indeksu musi składać się z dokładnie 6 cyfr!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        // Placeholder - na razie tylko pokaz co zostało wprowadzone
+        String groupInfo = selectedGroup != null ? " do grupy " + selectedGroup : " (bez przypisania do grupy)";
+        showAlert("Informacja",
+                "Student zostanie dodany do bazy:" +
+                        "\nImię: " + firstName +
+                        "\nNazwisko: " + lastName +
+                        "\nNr indeksu: " + indexNumber +
+                        groupInfo +
+                        "\n\n(Logika będzie zaimplementowana później)",
+                Alert.AlertType.INFORMATION);
+
+        // Wyczyść formularz
+        clearStudentGlobalForm();
+    }
+
+    /**
+     * Otwiera okno szczegółów grupy
+     */
+    private void openGroupDetailWindow(Group group) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("group-detail-view.fxml"));
+            Parent root = loader.load();
+
+            // Przekaż grupę do kontrolera
+            GroupDetailController controller = loader.getController();
+            controller.setGroup(group);
+
+            // Utwórz nowe okno
+            Stage stage = new Stage();
+            stage.setTitle("Grupa: " + group.getName());
+            stage.setScene(new Scene(root, 1200, 800));
+
+            // Dodaj stylizację
+            stage.getScene().getStylesheets().add(
+                    getClass().getResource("styles.css").toExternalForm());
+
+            // Ustaw minimalny rozmiar
+            stage.setMinWidth(1000);
+            stage.setMinHeight(700);
+
+            // Pokaż okno
+            stage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace(); // Pokaż błąd w konsoli
+            showAlert("Błąd", "Nie udało się otworzyć widoku grupy: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
+        }
     }
 
     /**
@@ -210,6 +293,38 @@ public class ModernController {
                         }
                     });
                 });
+    }
+
+    private void clearStudentGlobalForm() {
+        studentFirstNameField.clear();
+        studentLastNameField.clear();
+        studentIndexField.clear();
+        groupSelectionComboBox.setValue(null);
+    }
+
+    private void setupStudentIndexValidation() {
+        // Dodaj listener do pola numeru indeksu - tylko cyfry, max 6 znaków
+        studentIndexField.textProperty().addListener((observable, oldValue, newValue) -> {
+            // Usuń wszystko co nie jest cyfrą
+            String digitsOnly = newValue.replaceAll("[^0-9]", "");
+            // Ogranicz do 6 cyfr
+            if (digitsOnly.length() > 6) {
+                digitsOnly = digitsOnly.substring(0, 6);
+            }
+            // Ustaw nową wartość tylko jeśli się zmieniła
+            if (!digitsOnly.equals(newValue)) {
+                studentIndexField.setText(digitsOnly);
+            }
+        });
+    }
+
+    private void updateGroupComboBox() {
+        // Aktualizuj listę grup w ComboBox
+        ObservableList<String> groupNames = FXCollections.observableArrayList();
+        for (Group group : groups) {
+            groupNames.add(group.getName());
+        }
+        groupSelectionComboBox.setItems(groupNames);
     }
 
     private void updateGroupCount() {
