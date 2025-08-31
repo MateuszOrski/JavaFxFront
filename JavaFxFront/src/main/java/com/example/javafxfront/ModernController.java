@@ -1,13 +1,11 @@
 package com.example.javafxfront;
 
-import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
-import javafx.scene.layout.HBox;
 import javafx.util.Duration;
 import java.util.Optional;
 
@@ -23,14 +21,18 @@ public class ModernController {
     @FXML private VBox addGroupCard;
     @FXML private VBox groupsCard;
     @FXML private Label groupCountLabel;
+    @FXML private Button refreshButton;
+    @FXML private Label serverStatusLabel;
 
     private ObservableList<Group> groups;
+    private GroupService groupService;
 
     @FXML
     protected void initialize() {
-        // Inicjalizacja listy grup
+        // Inicjalizacja listy grup i serwisu
         groups = FXCollections.observableArrayList();
         groupsListView.setItems(groups);
+        groupService = new GroupService();
 
         // Konfiguracja ListView
         groupsListView.setCellFactory(listView -> new GroupListCell());
@@ -47,8 +49,7 @@ public class ModernController {
         deleteGroupButton.setDisable(true);
 
         updateGroupCount();
-
-        // Aplikacja startuje bez grup - użytkownik dodaje je ręcznie
+        checkServerConnection();
     }
 
     @FXML
@@ -82,6 +83,9 @@ public class ModernController {
         updateGroupCount();
 
         showAlert("Sukces", "Grupa '" + groupName + "' została dodana pomyślnie!", Alert.AlertType.INFORMATION);
+
+        // Opcjonalnie: wyślij też na serwer
+        // sendGroupToServer(newGroup);
     }
 
     @FXML
@@ -125,6 +129,87 @@ public class ModernController {
                         Alert.AlertType.INFORMATION);
             }
         }
+    }
+
+    @FXML
+    protected void onRefreshClick() {
+        loadGroupsFromServer();
+    }
+
+    /**
+     * Ładuje grupy z serwera
+     */
+    private void loadGroupsFromServer() {
+        // Pokazuj loading
+        refreshButton.setText("Ładowanie...");
+        refreshButton.setDisable(true);
+
+        groupService.getAllGroupsAsync()
+                .thenAccept(serverGroups -> {
+                    // Aktualizuj UI w JavaFX Application Thread
+                    javafx.application.Platform.runLater(() -> {
+                        groups.clear();
+                        groups.addAll(serverGroups);
+                        updateGroupCount();
+
+                        refreshButton.setText("Odśwież z serwera");
+                        refreshButton.setDisable(false);
+
+                        showAlert("Sukces", "Załadowano " + serverGroups.size() + " grup z serwera",
+                                Alert.AlertType.INFORMATION);
+                    });
+                })
+                .exceptionally(throwable -> {
+                    // Obsługa błędów w JavaFX Application Thread
+                    javafx.application.Platform.runLater(() -> {
+                        refreshButton.setText("Odśwież z serwera");
+                        refreshButton.setDisable(false);
+
+                        showAlert("Błąd serwera",
+                                "Nie udało się załadować grup z serwera:\n" + throwable.getMessage(),
+                                Alert.AlertType.ERROR);
+                    });
+                    return null;
+                });
+    }
+
+    /**
+     * Wysyła nową grupę na serwer (opcjonalne)
+     */
+    private void sendGroupToServer(Group group) {
+        groupService.addGroupAsync(group)
+                .thenAccept(savedGroup -> {
+                    javafx.application.Platform.runLater(() -> {
+                        // Możesz zaktualizować grupę z ID z serwera
+                        System.out.println("Grupa zapisana na serwerze: " + savedGroup);
+                    });
+                })
+                .exceptionally(throwable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        showAlert("Ostrzeżenie",
+                                "Grupa dodana lokalnie, ale nie udało się wysłać na serwer:\n" + throwable.getMessage(),
+                                Alert.AlertType.WARNING);
+                    });
+                    return null;
+                });
+    }
+
+    /**
+     * Sprawdza połączenie z serwerem
+     */
+    private void checkServerConnection() {
+        groupService.checkServerConnection()
+                .thenAccept(isConnected -> {
+                    javafx.application.Platform.runLater(() -> {
+                        if (isConnected) {
+                            serverStatusLabel.setText("🟢 Połączony z serwerem");
+                            serverStatusLabel.setStyle("-fx-text-fill: #38A169;");
+                        } else {
+                            serverStatusLabel.setText("🔴 Serwer niedostępny");
+                            serverStatusLabel.setStyle("-fx-text-fill: #E53E3E;");
+                        }
+                    });
+                });
     }
 
     private void updateGroupCount() {
