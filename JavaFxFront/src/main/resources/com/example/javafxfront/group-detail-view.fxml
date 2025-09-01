@@ -94,6 +94,19 @@
 
                                 <Button fx:id="addStudentButton" mnemonicParsing="false" onAction="#onAddStudentClick"
                                         styleClass="primary-button" text="Dodaj studenta" maxWidth="Infinity" />
+
+                                <!-- Server operations -->
+                                <Separator />
+                                <Label styleClass="field-label" text="Operacje serwerowe:" />
+
+                                <Button fx:id="loadStudentsButton" mnemonicParsing="false" onAction="#onLoadStudentsClick"
+                                        styleClass="secondary-button" text="Załaduj studentów" maxWidth="Infinity" />
+
+                                <Label styleClass="info-note" text="Załaduj studentów bez grupy z serwera i przypisz ich do tej grupy">
+                                    <font>
+                                        <Font size="10.0" />
+                                    </font>
+                                </Label>
                             </VBox>
 
                             <!-- Students List -->
@@ -102,11 +115,16 @@
                                     <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                                 </padding>
 
-                                <Label styleClass="form-title" text="Lista studentów">
-                                    <font>
-                                        <Font name="System Bold" size="16.0" />
-                                    </font>
-                                </Label>
+                                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                    <Label styleClass="form-title" text="Lista studentów">
+                                        <font>
+                                            <Font name="System Bold" size="16.0" />
+                                        </font>
+                                    </Label>
+                                    <Region HBox.hgrow="ALWAYS" />
+                                    <Button fx:id="refreshStudentsButton" mnemonicParsing="false" onAction="#onRefreshStudentsClick"
+                                            styleClass="secondary-button" text="🔄 Odśwież z serwera" />
+                                </HBox>
 
                                 <ListView fx:id="studentsListView" styleClass="modern-list"
                                           VBox.vgrow="ALWAYS" minHeight="300.0" maxHeight="400.0" />
@@ -120,10 +138,10 @@
                     </Tab>
 
                     <!-- Terminy Tab -->
-                    <Tab text="Terminy">
+                    <Tab text="Terminy i Frekwencja">
                         <HBox spacing="20.0" alignment="TOP_CENTER">
 
-                            <!-- Add Termin Form - ROZSZERZONY -->
+                            <!-- Add Termin Form -->
                             <VBox spacing="15.0" styleClass="form-card" maxWidth="350.0" minWidth="300.0">
                                 <padding>
                                     <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
@@ -165,19 +183,51 @@
 
                                 <Button fx:id="addTerminButton" mnemonicParsing="false" onAction="#onAddTerminClick"
                                         styleClass="primary-button" text="Dodaj termin" maxWidth="Infinity" />
+
+                                <!-- Informacja o frekwencji -->
+                                <Separator />
+                                <Label styleClass="info-note" text="Po utworzeniu terminu kliknij na niego w liście aby zarządzać frekwencją studentów">
+                                    <font>
+                                        <Font size="10.0" />
+                                    </font>
+                                </Label>
                             </VBox>
 
                             <!-- Terminy List -->
-                            <VBox spacing="15.0" styleClass="list-card" VBox.vgrow="ALWAYS" minWidth="400.0">
+                            <VBox spacing="15.0" styleClass="list-card" VBox.vgrow="ALWAYS" minWidth="450.0">
                                 <padding>
                                     <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                                 </padding>
 
-                                <Label styleClass="form-title" text="Lista terminów">
-                                    <font>
-                                        <Font name="System Bold" size="16.0" />
-                                    </font>
-                                </Label>
+                                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                    <Label styleClass="form-title" text="Lista terminów">
+                                        <font>
+                                            <Font name="System Bold" size="16.0" />
+                                        </font>
+                                    </Label>
+                                    <Region HBox.hgrow="ALWAYS" />
+                                    <Button fx:id="refreshSchedulesButton" mnemonicParsing="false" onAction="#onRefreshSchedulesClick"
+                                            styleClass="secondary-button" text="🔄 Odśwież z serwera" />
+                                </HBox>
+
+                                <!-- Legenda -->
+                                <VBox spacing="5.0" styleClass="info-note" style="-fx-background-color: rgba(220, 20, 60, 0.05);">
+                                    <Label text="Instrukcja:" style="-fx-font-weight: bold; -fx-font-size: 11px;">
+                                        <font>
+                                            <Font size="11.0" />
+                                        </font>
+                                    </Label>
+                                    <Label text="• Kliknij na termin aby zarządzać frekwencją" style="-fx-font-size: 10px;" />
+                                    <Label text="• Możesz oznaczać studentów jako: Obecny, Spóźniony, Nieobecny" style="-fx-font-size: 10px;" />
+                                    <Label text="• Statistyki frekwencji są pokazywane w kolorach:" style="-fx-font-size: 10px;" />
+
+                                    <HBox spacing="15.0" style="-fx-padding: 5 0 0 10;">
+                                        <Label text="🟢 Obecny" style="-fx-text-fill: #38A169; -fx-font-size: 10px; -fx-font-weight: bold;" />
+                                        <Label text="🟠 Spóźniony" style="-fx-text-fill: #F56500; -fx-font-size: 10px; -fx-font-weight: bold;" />
+                                        <Label text="🔴 Nieobecny" style="-fx-text-fill: #E53E3E; -fx-font-size: 10px; -fx-font-weight: bold;" />
+                                        <Label text="🔵 Serwer | 🔴 Lokalny" style="-fx-font-size: 10px;" />
+                                    </HBox>
+                                </VBox>
 
                                 <ListView fx:id="scheduleListView" styleClass="modern-list"
                                           VBox.vgrow="ALWAYS" minHeight="300.0" maxHeight="400.0" />
@@ -186,6 +236,13 @@
                                     <Button fx:id="removeScheduleButton" mnemonicParsing="false" onAction="#onRemoveScheduleClick"
                                             styleClass="danger-button" text="Usuń termin" />
                                 </HBox>
+
+                                <!-- Ostrzeżenie -->
+                                <Label styleClass="info-note" text="UWAGA: Usuwanie terminów spowoduje utratę wszystkich danych o frekwencji dla tego terminu.">
+                                    <font>
+                                        <Font size="9.0" />
+                                    </font>
+                                </Label>
                             </VBox>
                         </HBox>
                     </Tab>

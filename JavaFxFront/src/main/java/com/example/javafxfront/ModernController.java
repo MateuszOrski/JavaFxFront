@@ -33,6 +33,10 @@ public class ModernController {
     @FXML private Button refreshButton;
     @FXML private Label serverStatusLabel;
 
+    // DODANE - Nowe elementy dla studentów
+    @FXML private Button refreshStudentsGlobalButton;
+    @FXML private Label studentCountLabel;
+
     private ObservableList<Group> groups;
     private GroupService groupService;
     private StudentService studentService;
@@ -62,6 +66,7 @@ public class ModernController {
         updateGroupCount();
         checkServerConnection();
         setupStudentIndexValidation();
+        loadStudentCountFromServer(); // DODANE
     }
 
     @FXML
@@ -215,6 +220,24 @@ public class ModernController {
         loadGroupsFromServer();
     }
 
+    // DODANE - Odświeżanie liczby studentów z serwera
+    @FXML
+    protected void onRefreshStudentsGlobalClick() {
+        if (refreshStudentsGlobalButton != null) {
+            refreshStudentsGlobalButton.setText("Ładowanie...");
+            refreshStudentsGlobalButton.setDisable(true);
+        }
+
+        loadStudentCountFromServer();
+
+        if (refreshStudentsGlobalButton != null) {
+            javafx.application.Platform.runLater(() -> {
+                refreshStudentsGlobalButton.setText("🔄");
+                refreshStudentsGlobalButton.setDisable(false);
+            });
+        }
+    }
+
     @FXML
     protected void onAddStudentGlobalClick() {
         String firstName = studentFirstNameField.getText().trim();
@@ -248,6 +271,9 @@ public class ModernController {
 
                         animateButton(addStudentGlobalButton);
                         clearStudentGlobalForm();
+
+                        // DODANE - Odśwież liczbę studentów
+                        loadStudentCountFromServer();
 
                         showAlert("Sukces",
                                 "Student " + newStudent.getFullName() + " został dodany na serwer!" +
@@ -341,6 +367,32 @@ public class ModernController {
                 });
     }
 
+    // DODANE - Ładowanie liczby studentów z serwera
+    private void loadStudentCountFromServer() {
+        studentService.getAllStudentsAsync()
+                .thenAccept(serverStudents -> {
+                    javafx.application.Platform.runLater(() -> {
+                        if (studentCountLabel != null) {
+                            long withoutGroup = serverStudents.stream()
+                                    .filter(s -> s.getGroupName() == null || s.getGroupName().trim().isEmpty())
+                                    .count();
+
+                            studentCountLabel.setText("Studentów na serwerze: " + serverStudents.size() +
+                                    " (bez grupy: " + withoutGroup + ")");
+                        }
+                    });
+                })
+                .exceptionally(throwable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        if (studentCountLabel != null) {
+                            studentCountLabel.setText("Błąd ładowania liczby studentów");
+                            studentCountLabel.setStyle("-fx-text-fill: #E53E3E;");
+                        }
+                    });
+                    return null;
+                });
+    }
+
     /**
      * Sprawdza połączenie z serwerem
      */
@@ -349,7 +401,7 @@ public class ModernController {
                 .thenAccept(isConnected -> {
                     javafx.application.Platform.runLater(() -> {
                         if (isConnected) {
-                            serverStatusLabel.setText("🟢 Połączony z serwerem");
+                            serverStatusLabel.setText("🟢 Połączony z serverem");
                             serverStatusLabel.setStyle("-fx-text-fill: #38A169;");
                         } else {
                             serverStatusLabel.setText("🔴 Serwer niedostępny");

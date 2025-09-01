@@ -72,9 +72,22 @@
                             <Insets bottom="25.0" left="25.0" right="25.0" top="25.0" />
                         </padding>
 
-                        <Label styleClass="card-title" text="Dodaj studenta">
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <Label styleClass="card-title" text="Dodaj studenta">
+                                <font>
+                                    <Font name="System Bold" size="16.0" />
+                                </font>
+                            </Label>
+                            <Region HBox.hgrow="ALWAYS" />
+                            <!-- DODANE - Przycisk odświeżania licznika studentów -->
+                            <Button fx:id="refreshStudentsGlobalButton" mnemonicParsing="false" onAction="#onRefreshStudentsGlobalClick"
+                                    styleClass="secondary-button" text="🔄" />
+                        </HBox>
+
+                        <!-- DODANE - Licznik studentów na serwerze -->
+                        <Label fx:id="studentCountLabel" styleClass="count-label" text="Ładowanie liczby studentów...">
                             <font>
-                                <Font name="System Bold" size="16.0" />
+                                <Font size="10.0" />
                             </font>
                         </Label>
 
@@ -106,9 +119,7 @@
                                 <TextField fx:id="studentIndexField" promptText="6 cyfr (np. 123456)" styleClass="modern-field" />
                             </VBox>
 
-                            <!-- USUNIĘTO COMBOBOX Z GRUPAMI - PRZYPISANIE TYLKO W DRUGIM OKNIE -->
-
-                            <Label styleClass="info-note" text="Przypisanie do grupy możliwe w oknie szczegółów grupy">
+                            <Label styleClass="info-note" text="Student będzie dodany bez grupy. Przypisanie do grupy możliwe w oknie szczegółów grupy.">
                                 <font>
                                     <Font size="10.0" />
                                 </font>
@@ -118,8 +129,6 @@
                         <Button fx:id="addStudentGlobalButton" mnemonicParsing="false" onAction="#onAddStudentGlobalClick"
                                 styleClass="primary-button" text="Dodaj studenta" maxWidth="Infinity" />
                     </VBox>
-
-                    <!-- USUNIĘTO CAŁĄ KARTĘ Z DODAWANIEM TERMINÓW -->
 
                     <!-- Groups List Card -->
                     <VBox fx:id="groupsCard" alignment="TOP_CENTER" spacing="20.0" styleClass="main-card"
@@ -191,7 +200,7 @@
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="Wypełnij formularz i kliknij 'Dodaj grupę'"
+                            <Label styleClass="instruction-desc" text="Wypełnij formularz i kliknij 'Dodaj grupę'. Grupa zostanie wysłana na serwer."
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -210,7 +219,7 @@
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="Wypełnij dane studenta (bez grupy)"
+                            <Label styleClass="instruction-desc" text="Dodaj studenta bez grupy na serwer. Sprawdź licznik studentów na serwerze."
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -229,7 +238,7 @@
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="Wejdź do grupy lub usuń ją z systemu"
+                            <Label styleClass="instruction-desc" text="Wejdź do grupy, usuń ją lub odśwież listę z serwera"
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -248,7 +257,7 @@
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="W oknie grupy dodawaj studentów do konkretnej grupy"
+                            <Label styleClass="instruction-desc" text="W oknie grupy załaduj studentów z serwera i przypisz ich do konkretnej grupy"
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -262,12 +271,31 @@
                                     <Font name="System Bold" size="20.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-title" text="Dodawaj terminy">
+                            <Label styleClass="instruction-title" text="Zarządzaj terminami">
                                 <font>
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="W oknie grupy twórz terminy egzaminów i zajęć"
+                            <Label styleClass="instruction-desc" text="W oknie grupy twórz terminy i synchronizuj je z serwerem. Odświeżaj dane z serwera."
+                                   textAlignment="CENTER" wrapText="true">
+                                <font>
+                                    <Font size="12.0" />
+                                </font>
+                            </Label>
+                        </VBox>
+
+                        <VBox alignment="CENTER" spacing="8.0" styleClass="instruction-item" GridPane.columnIndex="2" GridPane.rowIndex="1">
+                            <Label styleClass="instruction-number" text="6">
+                                <font>
+                                    <Font name="System Bold" size="20.0" />
+                                </font>
+                            </Label>
+                            <Label styleClass="instruction-title" text="Synchronizacja">
+                                <font>
+                                    <Font name="System Bold" size="14.0" />
+                                </font>
+                            </Label>
+                            <Label styleClass="instruction-desc" text="Wszystkie operacje są synchronizowane z serwerem. Używaj przycisków odświeżania."
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -286,7 +314,7 @@
             <padding>
                 <Insets bottom="15.0" left="20.0" right="20.0" top="15.0" />
             </padding>
-            <Label styleClass="footer-text" text="Dziennik Online • System zarządzania grupami • 2024">
+            <Label styleClass="footer-text" text="Dziennik Online • System zarządzania grupami • 2024 • Synchronizacja z serwerem">
                 <font>
                     <Font size="12.0" />
                 </font>

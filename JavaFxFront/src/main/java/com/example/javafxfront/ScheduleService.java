@@ -5,30 +5,32 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class StudentService {
+public class ScheduleService {
 
     private static final String BASE_URL = "http://localhost:8080/api";
-    private static final String STUDENTS_ENDPOINT = BASE_URL + "/students";
+    private static final String SCHEDULES_ENDPOINT = BASE_URL + "/schedules";
 
     private final HttpClient httpClient;
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
-    public StudentService() {
+    public ScheduleService() {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
     }
 
     /**
-     * Pobiera wszystkich studentów z serwera
+     * Pobiera wszystkie terminy z serwera
      */
-    public CompletableFuture<List<Student>> getAllStudentsAsync() {
+    public CompletableFuture<List<ClassSchedule>> getAllSchedulesAsync() {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(STUDENTS_ENDPOINT))
+                        .uri(URI.create(SCHEDULES_ENDPOINT))
                         .header("Content-Type", "application/json")
                         .header("Accept", "application/json")
                         .timeout(Duration.ofSeconds(30))
@@ -39,24 +41,24 @@ public class StudentService {
                         HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() == 200) {
-                    return parseStudentsFromJson(response.body());
+                    return parseSchedulesFromJson(response.body());
                 } else {
                     throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
                 }
 
             } catch (Exception e) {
-                throw new RuntimeException("Nie udalo sie pobrac studentow z serwera: " + e.getMessage(), e);
+                throw new RuntimeException("Nie udalo sie pobrac terminow z serwera: " + e.getMessage(), e);
             }
         });
     }
 
     /**
-     * Pobiera studentów z konkretnej grupy
+     * Pobiera terminy dla konkretnej grupy
      */
-    public CompletableFuture<List<Student>> getStudentsByGroupAsync(String groupName) {
+    public CompletableFuture<List<ClassSchedule>> getSchedulesByGroupAsync(String groupName) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String url = STUDENTS_ENDPOINT + "/group/" + java.net.URLEncoder.encode(groupName, "UTF-8");
+                String url = SCHEDULES_ENDPOINT + "/group/" + java.net.URLEncoder.encode(groupName, "UTF-8");
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
@@ -70,58 +72,27 @@ public class StudentService {
                         HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() == 200) {
-                    return parseStudentsFromJson(response.body());
+                    return parseSchedulesFromJson(response.body());
                 } else {
                     throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
                 }
 
             } catch (Exception e) {
-                throw new RuntimeException("Nie udalo sie pobrac studentow grupy z serwera: " + e.getMessage(), e);
+                throw new RuntimeException("Nie udalo sie pobrac terminow grupy z serwera: " + e.getMessage(), e);
             }
         });
     }
 
     /**
-     * Pobiera studentów bez przypisanej grupy
+     * Dodaje termin na serwer
      */
-    public CompletableFuture<List<Student>> getStudentsWithoutGroupAsync() {
+    public CompletableFuture<ClassSchedule> addScheduleAsync(ClassSchedule schedule) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String url = STUDENTS_ENDPOINT + "/without-group";
+                String jsonBody = scheduleToJson(schedule);
 
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .header("Content-Type", "application/json")
-                        .header("Accept", "application/json")
-                        .timeout(Duration.ofSeconds(30))
-                        .GET()
-                        .build();
-
-                HttpResponse<String> response = httpClient.send(request,
-                        HttpResponse.BodyHandlers.ofString());
-
-                if (response.statusCode() == 200) {
-                    return parseStudentsFromJson(response.body());
-                } else {
-                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
-                }
-
-            } catch (Exception e) {
-                throw new RuntimeException("Nie udalo sie pobrac studentow bez grupy z serwera: " + e.getMessage(), e);
-            }
-        });
-    }
-
-    /**
-     * Dodaje studenta na serwer
-     */
-    public CompletableFuture<Student> addStudentAsync(Student student) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                String jsonBody = studentToJson(student);
-
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(STUDENTS_ENDPOINT))
+                        .uri(URI.create(SCHEDULES_ENDPOINT))
                         .header("Content-Type", "application/json")
                         .header("Accept", "application/json")
                         .timeout(Duration.ofSeconds(30))
@@ -132,25 +103,25 @@ public class StudentService {
                         HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() == 201 || response.statusCode() == 200) {
-                    return parseStudentFromJson(response.body());
+                    return parseScheduleFromJson(response.body());
                 } else {
                     throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
                 }
 
             } catch (Exception e) {
-                throw new RuntimeException("Nie udalo sie dodac studenta na serwer: " + e.getMessage(), e);
+                throw new RuntimeException("Nie udalo sie dodac terminu na serwer: " + e.getMessage(), e);
             }
         });
     }
 
     /**
-     * Usuwa studenta z serwera
+     * Usuwa termin z serwera
      */
-    public CompletableFuture<Boolean> deleteStudentAsync(String studentIndexNumber) {
+    public CompletableFuture<Boolean> deleteScheduleAsync(Long scheduleId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(STUDENTS_ENDPOINT + "/" + studentIndexNumber))
+                        .uri(URI.create(SCHEDULES_ENDPOINT + "/" + scheduleId))
                         .header("Content-Type", "application/json")
                         .timeout(Duration.ofSeconds(30))
                         .DELETE()
@@ -162,21 +133,21 @@ public class StudentService {
                 return response.statusCode() == 200 || response.statusCode() == 204;
 
             } catch (Exception e) {
-                throw new RuntimeException("Nie udalo sie usunac studenta z serwera: " + e.getMessage(), e);
+                throw new RuntimeException("Nie udalo sie usunac terminu z serwera: " + e.getMessage(), e);
             }
         });
     }
 
     /**
-     * Aktualizuje studenta na serwerze (np. przypisanie do grupy)
+     * Aktualizuje termin na serwerze
      */
-    public CompletableFuture<Student> updateStudentAsync(String indexNumber, Student student) {
+    public CompletableFuture<ClassSchedule> updateScheduleAsync(Long scheduleId, ClassSchedule schedule) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String jsonBody = studentToJson(student);
+                String jsonBody = scheduleToJson(schedule);
 
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(STUDENTS_ENDPOINT + "/" + indexNumber))
+                        .uri(URI.create(SCHEDULES_ENDPOINT + "/" + scheduleId))
                         .header("Content-Type", "application/json")
                         .header("Accept", "application/json")
                         .timeout(Duration.ofSeconds(30))
@@ -187,20 +158,20 @@ public class StudentService {
                         HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() == 200) {
-                    return parseStudentFromJson(response.body());
+                    return parseScheduleFromJson(response.body());
                 } else {
                     throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
                 }
 
             } catch (Exception e) {
-                throw new RuntimeException("Nie udalo sie zaktualizowac studenta na serwerze: " + e.getMessage(), e);
+                throw new RuntimeException("Nie udalo sie zaktualizowac terminu na serwerze: " + e.getMessage(), e);
             }
         });
     }
 
     // === METODY PRYWATNE DO PARSOWANIA JSON ===
 
-    private List<Student> parseStudentsFromJson(String json) {
+    private List<ClassSchedule> parseSchedulesFromJson(String json) {
         // TYMCZASOWA IMPLEMENTACJA - DOSTOSUJ DO SWOJEGO FORMATU JSON
         // Tu dodaj prawdziwe parsowanie JSON używając Jackson, Gson, itp.
 
@@ -208,49 +179,62 @@ public class StudentService {
         [
             {
                 "id": 1,
-                "firstName": "Jan",
-                "lastName": "Kowalski",
-                "indexNumber": "123456",
+                "subject": "Egzamin z Javy",
+                "classroom": "Sala 101",
+                "startTime": "2024-06-15T10:30:00",
+                "endTime": "2024-06-15T12:30:00",
+                "instructor": "Dr Kowalski",
+                "notes": "Przyniesć długopis",
                 "groupName": "Grupa INF-A",
-                "addedDate": "2024-01-15T10:30:00"
-            },
-            {
-                "id": 2,
-                "firstName": "Anna",
-                "lastName": "Nowak",
-                "indexNumber": "123457",
-                "groupName": null,
-                "addedDate": "2024-01-16T14:20:00"
+                "createdDate": "2024-01-15T10:30:00"
             }
         ]
         */
 
-        java.util.List<Student> students = new java.util.ArrayList<>();
+        java.util.List<ClassSchedule> schedules = new java.util.ArrayList<>();
 
         // Tutaj dodaj kod parsujący JSON z Twojego serwera
         // Na przykład używając Jackson ObjectMapper:
         // ObjectMapper mapper = new ObjectMapper();
         // mapper.registerModule(new JavaTimeModule());
-        // return mapper.readValue(json, new TypeReference<List<Student>>(){});
+        // return mapper.readValue(json, new TypeReference<List<ClassSchedule>>(){});
 
-        return students;
+        return schedules;
     }
 
-    private Student parseStudentFromJson(String json) {
+    private ClassSchedule parseScheduleFromJson(String json) {
         // TYMCZASOWA IMPLEMENTACJA - DOSTOSUJ DO SWOJEGO FORMATU
-        // Parsuj pojedynczego studenta z JSON response
+        // Parsuj pojedynczy termin z JSON response
 
         // Tu możesz zwrócić null lub rzucić wyjątek - dostosuj do potrzeb
         return null; // Zamień na prawdziwe parsowanie
     }
 
-    private String studentToJson(Student student) {
+    private String scheduleToJson(ClassSchedule schedule) {
+        // TYMCZASOWA IMPLEMENTACJA - DOSTOSUJ DO SWOJEGO FORMATU
+        // Konwertuj termin do JSON dla wysłania na serwer
+
+        /* Przykładowy format dla serwera:
+        {
+            "subject": "Egzamin z Javy",
+            "classroom": "Sala 101",
+            "startTime": "2024-06-15T10:30:00",
+            "endTime": "2024-06-15T12:30:00",
+            "instructor": "Dr Kowalski",
+            "notes": "Przyniesć długopis",
+            "groupName": "Grupa INF-A"
+        }
+        */
+
         return String.format(
-                "{\"firstName\":\"%s\",\"lastName\":\"%s\",\"indexNumber\":\"%s\",\"groupName\":\"%s\"}",
-                escapeJson(student.getFirstName()),
-                escapeJson(student.getLastName()),
-                escapeJson(student.getIndexNumber()),
-                student.getGroupName() != null ? escapeJson(student.getGroupName()) : ""
+                "{\"subject\":\"%s\",\"classroom\":\"%s\",\"startTime\":\"%s\",\"endTime\":\"%s\",\"instructor\":\"%s\",\"notes\":\"%s\",\"groupName\":\"%s\"}",
+                escapeJson(schedule.getSubject()),
+                escapeJson(schedule.getClassroom()),
+                schedule.getStartTime().format(formatter),
+                schedule.getEndTime().format(formatter),
+                escapeJson(schedule.getInstructor()),
+                escapeJson(schedule.getNotes()),
+                escapeJson(schedule.getGroupName())
         );
     }
 
