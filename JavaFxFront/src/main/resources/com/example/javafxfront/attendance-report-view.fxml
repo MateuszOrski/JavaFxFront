@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.javafxfront.AttendanceReportController">
+
+    <!-- Header Section -->
+    <top>
+        <VBox styleClass="report-header">
+            <padding>
+                <Insets bottom="20.0" left="30.0" right="30.0" top="20.0" />
+            </padding>
+
+            <!-- Title and Group Info -->
+            <HBox alignment="CENTER_LEFT" spacing="20.0">
+                <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                    <Label fx:id="reportTitleLabel" styleClass="report-title" text="Dziennik obecności">
+                        <font>
+                            <Font name="System Bold" size="28.0" />
+                        </font>
+                    </Label>
+                    <Label fx:id="groupNameLabel" styleClass="group-name-header" text="Grupa: [Nazwa grupy]">
+                        <font>
+                            <Font size="16.0" />
+                        </font>
+                    </Label>
+                </VBox>
+
+                <!-- Stats Summary -->
+                <VBox alignment="CENTER_RIGHT" spacing="5.0">
+                    <Label fx:id="totalStudentsLabel" styleClass="stats-label" text="Liczba studentów: 0">
+                        <font>
+                            <Font size="12.0" />
+                        </font>
+                    </Label>
+                    <Label fx:id="totalSchedulesLabel" styleClass="stats-label" text="Liczba terminów: 0">
+                        <font>
+                            <Font size="12.0" />
+                        </font>
+                    </Label>
+                </VBox>
+            </HBox>
+
+            <!-- Filters Section -->
+            <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-padding: 15 0 0 0;">
+                <Label text="Filtry:" styleClass="filter-label">
+                    <font>
+                        <Font name="System Bold" size="14.0" />
+                    </font>
+                </Label>
+
+                <VBox spacing="3.0">
+                    <Label text="Termin:" styleClass="filter-sublabel">
+                        <font>
+                            <Font size="11.0" />
+                        </font>
+                    </Label>
+                    <ComboBox fx:id="filterScheduleComboBox" styleClass="filter-combo" prefWidth="200.0" />
+                </VBox>
+
+                <VBox spacing="3.0">
+                    <Label text="Status:" styleClass="filter-sublabel">
+                        <font>
+                            <Font size="11.0" />
+                        </font>
+                    </Label>
+                    <ComboBox fx:id="filterTypeComboBox" styleClass="filter-combo" prefWidth="150.0" />
+                </VBox>
+
+                <Region HBox.hgrow="ALWAYS" />
+
+                <!-- Action Buttons -->
+                <Button fx:id="refreshButton" styleClass="secondary-button" text="🔄 Odśwież" />
+                <Button fx:id="exportCSVButton" styleClass="export-button" text="📊 Eksport CSV" />
+                <Button fx:id="closeButton" styleClass="secondary-button" text="✖ Zamknij" />
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- Main Content -->
+    <center>
+        <VBox spacing="20.0" styleClass="report-content">
+            <padding>
+                <Insets bottom="20.0" left="30.0" right="30.0" top="10.0" />
+            </padding>
+
+            <!-- Statistics Summary -->
+            <HBox spacing="30.0" styleClass="statistics-panel">
+                <padding>
+                    <Insets bottom="15.0" left="20.0" right="20.0" top="15.0" />
+                </padding>
+
+                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card">
+                    <Label text="📊 Średnia obecność" styleClass="stat-title">
+                        <font>
+                            <Font name="System Bold" size="12.0" />
+                        </font>
+                    </Label>
+                    <Label fx:id="avgAttendanceLabel" styleClass="stat-value" text="0%">
+                        <font>
+                            <Font name="System Bold" size="20.0" />
+                        </font>
+                    </Label>
+                </VBox>
+
+                <Separator orientation="VERTICAL" />
+
+                <VBox alignment="CENTER_LEFT" spacing="8.0" styleClass="stat-card" VBox.vgrow="ALWAYS">
+                    <Label text="🏆 Najlepsza frekwencja" styleClass="stat-title">
+                        <font>
+                            <Font name="System Bold" size="12.0" />
+                        </font>
+                    </Label>
+                    <Label fx:id="bestStudentLabel" styleClass="stat-value-success" text="Brak danych" wrapText="true">
+                        <font>
+                            <Font size="13.0" />
+                        </font>
+                    </Label>
+                </VBox>
+
+                <Separator orientation="VERTICAL" />
+
+                <VBox alignment="CENTER_LEFT" spacing="8.0" styleClass="stat-card" VBox.vgrow="ALWAYS">
+                    <Label text="⚠️ Najgorsza frekwencja" styleClass="stat-title">
+                        <font>
+                            <Font name="System Bold" size="12.0" />
+                        </font>
+                    </Label>
+                    <Label fx:id="worstStudentLabel" styleClass="stat-value-warning" text="Brak danych" wrapText="true">
+                        <font>
+                            <Font size="13.0" />
+                        </font>
+                    </Label>
+                </VBox>
+            </HBox>
+
+            <!-- Main Attendance Table -->
+            <VBox spacing="10.0" styleClass="table-container" VBox.vgrow="ALWAYS">
+                <Label text="📋 Tabela obecności" styleClass="table-title">
+                    <font>
+                        <Font name="System Bold" size="16.0" />
+                    </font>
+                </Label>
+
+                <!-- Instructions -->
+                <HBox spacing="20.0" styleClass="legend-panel">
+                    <Label text="Legenda:" styleClass="legend-title">
+                        <font>
+                            <Font name="System Bold" size="11.0" />
+                        </font>
+                    </Label>
+                    <Label text="🟢 Obecny" styleClass="legend-present">
+                        <font>
+                            <Font size="10.0" />
+                        </font>
+                    </Label>
+                    <Label text="🟡 Spóźniony" styleClass="legend-late">
+                        <font>
+                            <Font size="10.0" />
+                        </font>
+                    </Label>
+                    <Label text="🔴 Nieobecny" styleClass="legend-absent">
+                        <font>
+                            <Font size="10.0" />
+                        </font>
+                    </Label>
+                    <Label text="⚪ Nie zaznaczono" styleClass="legend-unmarked">
+                        <font>
+                            <Font size="10.0" />
+                        </font>
+                    </Label>
+                </HBox>
+
+                <!-- Attendance Table -->
+                <TableView fx:id="attendanceTable" styleClass="attendance-table" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="studentNameColumn" text="Imię i nazwisko" prefWidth="200.0" />
+                        <TableColumn fx:id="indexColumn" text="Nr indeksu" prefWidth="100.0" />
+                        <!-- Dynamic columns for schedules will be added programmatically -->
+                    </columns>
+                </TableView>
+
+                <!-- Table Info -->
+                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="table-info">
+                    <Label text="💡 Wskazówka:" styleClass="hint-label">
+                        <font>
+                            <Font name="System Bold" size="10.0" />
+                        </font>
+                    </Label>
+                    <Label text="Kolumny przedstawiają terminy zajęć. Kliknij na komórkę aby zobaczyć szczegóły."
+                           styleClass="hint-text" wrapText="true">
+                        <font>
+                            <Font size="10.0" />
+                        </font>
+                    </Label>
+                </HBox>
+            </VBox>
+        </VBox>
+    </center>
+
+    <!-- Footer with additional actions -->
+    <bottom>
+        <HBox alignment="CENTER" spacing="20.0" styleClass="report-footer">
+            <padding>
+                <Insets bottom="15.0" left="30.0" right="30.0" top="15.0" />
+            </padding>
+
+            <Label text="📈 Raport wygenerowany automatycznie na podstawie danych z aplikacji"
+                   styleClass="footer-info">
+                <font>
+                    <Font size="11.0" />
+                </font>
+            </Label>
+
+            <Region HBox.hgrow="ALWAYS" />
+
+            <!-- Quick Stats -->
+            <Label text="🎯 Użyj filtrów aby zawęzić widok raportu" styleClass="footer-tip">
+                <font>
+                    <Font size="10.0" />
+                </font>
+            </Label>
+        </HBox>
+    </bottom>
+</BorderPane>

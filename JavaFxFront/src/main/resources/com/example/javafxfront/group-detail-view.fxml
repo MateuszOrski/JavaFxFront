@@ -42,6 +42,9 @@
                     </Label>
                 </VBox>
 
+                <Button fx:id="showReportButton" mnemonicParsing="false" onAction="#onShowReportClick"
+                        styleClass="primary-button" text="📊 Dziennik obecności" />
+
                 <Button fx:id="backButton" mnemonicParsing="false" onAction="#onBackClick"
                         styleClass="secondary-button" text="← Powrót" />
             </HBox>

@@ -1,3 +1,12 @@
+/* ================================================================================
+   STYLES.CSS - KOMPLETNY PLIK STYLÓW DZIENNIKA ONLINE
+   Zawiera wszystkie style dla aplikacji JavaFX + dziennik obecności
+   ================================================================================ */
+
+/* ================================================================================
+   PODSTAWOWE KOLORY I ZMIENNE
+   ================================================================================ */
+
 /* Główne kolory - biało-czerwone */
 * {
     -fx-primary-red: #DC143C;
@@ -13,6 +22,10 @@
     -fx-shadow: rgba(0, 0, 0, 0.1);
     -fx-red-shadow: rgba(220, 20, 60, 0.3);
 }
+
+/* ================================================================================
+   GŁÓWNY LAYOUT I KONTENERY
+   ================================================================================ */
 
 /* Główny kontener */
 .main-container {
@@ -33,6 +46,15 @@
     -fx-background-color: transparent;
 }
 
+/* Content Container */
+.content-container {
+    -fx-alignment: TOP_CENTER;
+}
+
+/* ================================================================================
+   HEADER SECTION
+   ================================================================================ */
+
 /* Header Section */
 .header-section {
     -fx-padding: 0 0 20 0;
@@ -51,10 +73,9 @@
     -fx-opacity: 0.9;
 }
 
-/* Content Container */
-.content-container {
-    -fx-alignment: TOP_CENTER;
-}
+/* ================================================================================
+   KARTY I KONTENERY
+   ================================================================================ */
 
 /* Główna karta */
 .main-card, .form-card, .list-card {
@@ -71,6 +92,10 @@
     -fx-font-weight: bold;
     -fx-font-size: 18px;
 }
+
+/* ================================================================================
+   FORMULARZE I POLA TEKSTOWE
+   ================================================================================ */
 
 /* Formularz */
 .form-container {
@@ -193,7 +218,10 @@
     -fx-background-color: rgba(255, 245, 245, 0.8);
 }
 
-/* Przyciski */
+/* ================================================================================
+   PRZYCISKI
+   ================================================================================ */
+
 .primary-button {
     -fx-background-color: linear-gradient(to bottom, -fx-primary-red, -fx-dark-red);
     -fx-text-fill: -fx-white;
@@ -268,6 +296,10 @@
     -fx-cursor: default;
 }
 
+/* ================================================================================
+   LISTY I TABELE
+   ================================================================================ */
+
 /* Lista grup */
 .groups-list, .modern-list {
     -fx-background-color: -fx-light-gray;
@@ -294,6 +326,10 @@
     -fx-background-color: rgba(220, 20, 60, 0.05);
     -fx-background-radius: 8;
 }
+
+/* ================================================================================
+   KOMÓRKI LIST
+   ================================================================================ */
 
 /* Komórki grup */
 .group-cell {
@@ -385,6 +421,10 @@
     -fx-opacity: 0.8;
 }
 
+/* ================================================================================
+   LICZNIKI I ETYKIETY
+   ================================================================================ */
+
 /* Liczniki */
 .count-label, .count-badge {
     -fx-text-fill: -fx-dark-gray;
@@ -411,6 +451,10 @@
     -fx-text-fill: -fx-dark-gray;
 }
 
+/* ================================================================================
+   TABY I NAWIGACJA
+   ================================================================================ */
+
 /* Taby */
 .main-tabs .tab-pane .tab-header-area .tab-header-background {
     -fx-background-color: -fx-light-gray;
@@ -436,6 +480,10 @@
 .main-tabs .tab-pane .tab-header-area .tab:selected .tab-label {
     -fx-text-fill: -fx-primary-red;
 }
+
+/* ================================================================================
+   STATUS I INFORMACJE
+   ================================================================================ */
 
 /* Status serwera */
 .server-status {
@@ -490,6 +538,10 @@
     -fx-text-alignment: CENTER;
 }
 
+/* ================================================================================
+   FOOTER
+   ================================================================================ */
+
 /* Footer */
 .footer {
     -fx-background-color: linear-gradient(to right, rgba(220, 20, 60, 0.05), rgba(255, 245, 245, 0.8));
@@ -501,6 +553,10 @@
     -fx-text-fill: -fx-dark-gray;
     -fx-font-size: 12px;
 }
+
+/* ================================================================================
+   INFORMACJE I NOTATKI
+   ================================================================================ */
 
 /* Informacyjna notatka */
 .info-note {
@@ -515,6 +571,13 @@
     -fx-border-width: 1;
     -fx-border-radius: 5;
 }
+
+/* ================================================================================
+   ALERTY I DIALOGI
+   ================================================================================ */
+
+/* Dialogi alertów */
+.alert-dialog {
     -fx-background-color: -fx-white;
 }
 
@@ -526,3 +589,663 @@
     -fx-text-fill: -fx-white;
     -fx-font-weight: bold;
 }
+
+/* ================================================================================
+   DZIENNIK OBECNOŚCI - NOWE STYLE
+   ================================================================================ */
+
+/* Header raportu */
+.report-header {
+    -fx-background-color: linear-gradient(to right, rgba(220, 20, 60, 0.05), rgba(255, 245, 245, 0.9));
+    -fx-border-color: rgba(220, 20, 60, 0.3);
+    -fx-border-width: 0 0 2 0;
+}
+
+.report-title {
+    -fx-text-fill: -fx-primary-red;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(220, 20, 60, 0.3), 3, 0, 0, 1);
+}
+
+.group-name-header {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-opacity: 0.9;
+}
+
+.stats-label {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-background-color: rgba(220, 20, 60, 0.1);
+    -fx-background-radius: 8;
+    -fx-padding: 3 8 3 8;
+    -fx-font-size: 11px;
+}
+
+/* Filtry */
+.filter-label {
+    -fx-text-fill: -fx-primary-red;
+}
+
+.filter-sublabel {
+    -fx-text-fill: -fx-text-dark;
+    -fx-font-weight: bold;
+}
+
+.filter-combo {
+    -fx-background-color: -fx-light-gray;
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 0 0 1 0;
+    -fx-background-radius: 5;
+    -fx-padding: 5;
+}
+
+.filter-combo:focused {
+    -fx-border-color: -fx-primary-red;
+    -fx-background-color: rgba(255, 245, 245, 0.8);
+}
+
+/* Przycisk eksportu */
+.export-button {
+    -fx-background-color: linear-gradient(to bottom, #38A169, #2F855A);
+    -fx-text-fill: -fx-white;
+    -fx-font-weight: bold;
+    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 20;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(56, 161, 105, 0.3), 5, 0, 0, 1);
+}
+
+.export-button:hover {
+    -fx-background-color: linear-gradient(to bottom, #48BB78, #38A169);
+    -fx-effect: dropshadow(gaussian, rgba(56, 161, 105, 0.5), 8, 0, 0, 2);
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* Główna zawartość raportu */
+.report-content {
+    -fx-background-color: -fx-white;
+}
+
+/* Panel statystyk */
+.statistics-panel {
+    -fx-background-color: rgba(248, 249, 250, 0.8);
+    -fx-border-color: rgba(220, 20, 60, 0.1);
+    -fx-border-width: 1;
+    -fx-border-radius: 15;
+    -fx-background-radius: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.05), 10, 0, 0, 2);
+}
+
+.stat-card {
+    -fx-padding: 15;
+    -fx-spacing: 5;
+}
+
+.stat-title {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-font-weight: bold;
+}
+
+.stat-value {
+    -fx-text-fill: -fx-primary-red;
+    -fx-font-weight: bold;
+}
+
+.stat-value-success {
+    -fx-text-fill: #38A169;
+    -fx-font-weight: bold;
+}
+
+.stat-value-warning {
+    -fx-text-fill: #F56500;
+    -fx-font-weight: bold;
+}
+
+/* Kontener tabeli */
+.table-container {
+    -fx-background-color: -fx-white;
+    -fx-border-color: rgba(220, 20, 60, 0.1);
+    -fx-border-width: 1;
+    -fx-border-radius: 15;
+    -fx-background-radius: 15;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.05), 10, 0, 0, 2);
+}
+
+.table-title {
+    -fx-text-fill: -fx-primary-red;
+    -fx-font-weight: bold;
+}
+
+/* Legenda */
+.legend-panel {
+    -fx-background-color: rgba(220, 20, 60, 0.05);
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.legend-title {
+    -fx-text-fill: -fx-text-dark;
+    -fx-font-weight: bold;
+}
+
+.legend-present {
+    -fx-text-fill: #38A169;
+    -fx-font-weight: bold;
+}
+
+.legend-late {
+    -fx-text-fill: #F56500;
+    -fx-font-weight: bold;
+}
+
+.legend-absent {
+    -fx-text-fill: #E53E3E;
+    -fx-font-weight: bold;
+}
+
+.legend-unmarked {
+    -fx-text-fill: #6C757D;
+    -fx-font-weight: bold;
+}
+
+/* Tabela obecności */
+.attendance-table {
+    -fx-background-color: -fx-white;
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+.attendance-table .column-header {
+    -fx-background-color: linear-gradient(to bottom, rgba(220, 20, 60, 0.1), rgba(220, 20, 60, 0.05));
+    -fx-text-fill: -fx-primary-red;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 8;
+}
+
+.attendance-table .table-cell {
+    -fx-border-color: rgba(220, 20, 60, 0.1);
+    -fx-border-width: 0 1 1 0;
+    -fx-padding: 8;
+    -fx-alignment: CENTER;
+    -fx-font-size: 11px;
+}
+
+.attendance-table .table-row-cell:hover {
+    -fx-background-color: rgba(220, 20, 60, 0.05);
+}
+
+.attendance-table .table-row-cell:selected {
+    -fx-background-color: rgba(220, 20, 60, 0.15);
+    -fx-border-color: -fx-primary-red;
+    -fx-border-width: 1 0 1 0;
+}
+
+/* Informacje o tabeli */
+.table-info {
+    -fx-background-color: rgba(248, 249, 250, 0.6);
+    -fx-border-color: rgba(220, 20, 60, 0.1);
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10;
+}
+
+.hint-label {
+    -fx-text-fill: -fx-primary-red;
+}
+
+.hint-text {
+    -fx-text-fill: -fx-dark-gray;
+}
+
+/* Footer raportu */
+.report-footer {
+    -fx-background-color: linear-gradient(to right, rgba(248, 249, 250, 0.8), rgba(255, 245, 245, 0.6));
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 1 0 0 0;
+}
+
+.footer-info {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-font-style: italic;
+}
+
+.footer-tip {
+    -fx-text-fill: -fx-primary-red;
+    -fx-font-style: italic;
+    -fx-font-weight: bold;
+}
+
+/* Responsywność tabeli */
+.attendance-table .table-column {
+    -fx-min-width: 80px;
+    -fx-pref-width: 120px;
+    -fx-max-width: 200px;
+}
+
+/* Scrollbar w tabeli */
+.attendance-table .scroll-bar {
+    -fx-background-color: rgba(220, 20, 60, 0.1);
+}
+
+.attendance-table .scroll-bar .thumb {
+    -fx-background-color: rgba(220, 20, 60, 0.5);
+    -fx-background-radius: 5;
+}
+
+.attendance-table .scroll-bar .thumb:hover {
+    -fx-background-color: rgba(220, 20, 60, 0.7);
+}
+
+/* Animacje hover dla komórek z danymi */
+.attendance-table .table-cell:hover {
+    -fx-effect: dropshadow(gaussian, rgba(220, 20, 60, 0.2), 3, 0, 0, 0);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+/* Stylizacja komórek ze statusami obecności */
+.cell-present {
+    -fx-background-color: rgba(56, 161, 105, 0.2);
+    -fx-text-fill: #38A169;
+    -fx-font-weight: bold;
+}
+
+.cell-late {
+    -fx-background-color: rgba(245, 101, 0, 0.2);
+    -fx-text-fill: #F56500;
+    -fx-font-weight: bold;
+}
+
+.cell-absent {
+    -fx-background-color: rgba(229, 62, 62, 0.2);
+    -fx-text-fill: #E53E3E;
+    -fx-font-weight: bold;
+}
+
+.cell-unmarked {
+    -fx-background-color: rgba(108, 117, 125, 0.1);
+    -fx-text-fill: #6C757D;
+    -fx-font-style: italic;
+}
+
+/* ================================================================================
+   DODATKOWE STYLE DZIENNIKA - DETALE
+   ================================================================================ */
+
+/* Detailowe okno terminu */
+.schedule-detail-window {
+    -fx-background-color: -fx-white;
+}
+
+.schedule-info-header {
+    -fx-background-color: rgba(248, 249, 250, 0.8);
+    -fx-border-color: rgba(220, 20, 60, 0.1);
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 15;
+}
+
+.attendance-row {
+    -fx-background-color: -fx-white;
+    -fx-border-color: rgba(220, 20, 60, 0.1);
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 10;
+}
+
+.attendance-row:hover {
+    -fx-background-color: rgba(220, 20, 60, 0.02);
+}
+
+/* Status obecności w rzędach */
+.attendance-status-present {
+    -fx-text-fill: #38A169;
+    -fx-font-weight: bold;
+}
+
+.attendance-status-late {
+    -fx-text-fill: #F56500;
+    -fx-font-weight: bold;
+}
+
+.attendance-status-absent {
+    -fx-text-fill: #E53E3E;
+    -fx-font-weight: bold;
+}
+
+.attendance-status-unmarked {
+    -fx-text-fill: #6C757D;
+    -fx-font-style: italic;
+}
+
+/* Przyciski w rzędach obecności */
+.attendance-action-button {
+    -fx-padding: 5 10 5 10;
+    -fx-background-radius: 15;
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.attendance-present-button {
+    -fx-background-color: #38A169;
+    -fx-text-fill: white;
+}
+
+.attendance-present-button:hover {
+    -fx-background-color: #48BB78;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.attendance-late-button {
+    -fx-background-color: #F56500;
+    -fx-text-fill: white;
+}
+
+.attendance-late-button:hover {
+    -fx-background-color: #FF8C00;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.attendance-absent-button {
+    -fx-background-color: #E53E3E;
+    -fx-text-fill: white;
+}
+
+.attendance-absent-button:hover {
+    -fx-background-color: #FC8181;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.attendance-clear-button {
+    -fx-background-color: #6C757D;
+    -fx-text-fill: white;
+}
+
+.attendance-clear-button:hover {
+    -fx-background-color: #495057;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* ================================================================================
+   ZAAWANSOWANE ELEMENTY UI
+   ================================================================================ */
+
+/* Progress indicator dla ładowania */
+.loading-indicator {
+    -fx-background-color: transparent;
+}
+
+.loading-indicator .indicator {
+    -fx-background-color: -fx-primary-red;
+    -fx-background-radius: 50%;
+}
+
+/* Separator stylizowany */
+.custom-separator .line {
+    -fx-background-color: rgba(220, 20, 60, 0.2);
+    -fx-background-radius: 1;
+}
+
+/* Tooltip stylizowany */
+.custom-tooltip {
+    -fx-background-color: rgba(33, 37, 41, 0.9);
+    -fx-text-fill: white;
+    -fx-background-radius: 5;
+    -fx-padding: 5 10 5 10;
+    -fx-font-size: 11px;
+}
+
+/* ================================================================================
+   AKCESORIA I DETALE
+   ================================================================================ */
+
+/* Podświetlenie aktywnych elementów */
+.active-element {
+    -fx-border-color: -fx-primary-red;
+    -fx-border-width: 2;
+    -fx-border-radius: 5;
+    -fx-background-color: rgba(220, 20, 60, 0.02);
+}
+
+/* Efekt glow dla ważnych elementów */
+.glow-effect {
+    -fx-effect: dropshadow(gaussian, -fx-primary-red, 10, 0.3, 0, 0);
+}
+
+/* Pulse animation dla powiadomień */
+.pulse-animation {
+    -fx-effect: dropshadow(gaussian, -fx-primary-red, 15, 0.5, 0, 0);
+}
+
+/* Stylizowane checkboxy */
+.custom-checkbox .box {
+    -fx-background-color: -fx-white;
+    -fx-border-color: rgba(220, 20, 60, 0.3);
+    -fx-border-width: 2;
+    -fx-border-radius: 3;
+}
+
+.custom-checkbox:selected .mark {
+    -fx-background-color: -fx-primary-red;
+    -fx-shape: "M 0 3 L 3 6 L 8 0";
+}
+
+.custom-checkbox:selected .box {
+    -fx-background-color: rgba(220, 20, 60, 0.1);
+    -fx-border-color: -fx-primary-red;
+}
+
+/* RadioButton stylizowany */
+.custom-radio-button .radio {
+    -fx-background-color: -fx-white;
+    -fx-border-color: rgba(220, 20, 60, 0.3);
+    -fx-border-width: 2;
+    -fx-background-radius: 50%;
+    -fx-border-radius: 50%;
+}
+
+.custom-radio-button:selected .dot {
+    -fx-background-color: -fx-primary-red;
+    -fx-background-radius: 50%;
+}
+
+/* ================================================================================
+   MEDIA QUERIES I RESPONSYWNOŚĆ
+   ================================================================================ */
+
+/* Małe ekrany - tablet */
+@media (max-width: 1200px) {
+    .main-container {
+        -fx-padding: 15;
+    }
+
+    .card-title, .form-title {
+        -fx-font-size: 16px;
+    }
+
+    .attendance-table .table-column {
+        -fx-min-width: 60px;
+        -fx-pref-width: 100px;
+    }
+}
+
+/* Bardzo małe ekrany - telefon */
+@media (max-width: 800px) {
+    .main-container {
+        -fx-padding: 10;
+    }
+
+    .primary-button, .secondary-button, .danger-button {
+        -fx-font-size: 12px;
+        -fx-padding: 8 15 8 15;
+    }
+
+    .modern-field {
+        -fx-padding: 8;
+        -fx-font-size: 12px;
+    }
+}
+
+/* ================================================================================
+   TRYB CIEMNY (OPCJONALNY - FUTURE FEATURE)
+   ================================================================================ */
+
+/* Przygotowanie do trybu ciemnego */
+.dark-theme {
+    -fx-base: #2B2B2B;
+    -fx-background: #1E1E1E;
+    -fx-control-inner-background: #3C3C3C;
+}
+
+.dark-theme .main-container {
+    -fx-background-color: linear-gradient(to bottom, #1E1E1E, #2B2B2B);
+}
+
+.dark-theme .main-card,
+.dark-theme .form-card,
+.dark-theme .list-card {
+    -fx-background-color: #3C3C3C;
+    -fx-border-color: rgba(220, 20, 60, 0.3);
+}
+
+.dark-theme .modern-field {
+    -fx-background-color: #2B2B2B;
+    -fx-text-fill: #FFFFFF;
+}
+
+.dark-theme .card-title,
+.dark-theme .form-title {
+    -fx-text-fill: #FF6B85;
+}
+
+/* ================================================================================
+   ANIMACJE I TRANSYCJE
+   ================================================================================ */
+
+/* Transition dla hover efektów */
+* {
+    -fx-transition: all 0.2s ease-in-out;
+}
+
+/* Fade in animation */
+.fade-in {
+    -fx-opacity: 0;
+    -fx-transition: opacity 0.3s ease-in;
+}
+
+.fade-in-active {
+    -fx-opacity: 1;
+}
+
+/* Slide down animation */
+.slide-down {
+    -fx-translate-y: -20;
+    -fx-opacity: 0;
+    -fx-transition: all 0.3s ease-out;
+}
+
+.slide-down-active {
+    -fx-translate-y: 0;
+    -fx-opacity: 1;
+}
+
+/* Scale animation */
+.scale-in {
+    -fx-scale-x: 0.8;
+    -fx-scale-y: 0.8;
+    -fx-opacity: 0;
+    -fx-transition: all 0.2s ease-out;
+}
+
+.scale-in-active {
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+    -fx-opacity: 1;
+}
+
+/* ================================================================================
+   SPECJALNE EFEKTY
+   ================================================================================ */
+
+/* Gradient border effect */
+.gradient-border {
+    -fx-border-color: linear-gradient(to right, -fx-primary-red, -fx-light-red);
+    -fx-border-width: 2;
+    -fx-border-radius: 10;
+}
+
+/* Glass morphism effect */
+.glass-effect {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-backdrop-filter: blur(10px);
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-border-width: 1;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+}
+
+/* Neomorphism effect */
+.neomorphism {
+    -fx-background-color: #F0F0F0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 10, 0, 5, 5),
+                innershadow(gaussian, rgba(255, 255, 255, 0.7), 10, 0, -5, -5);
+    -fx-background-radius: 15;
+}
+
+/* ================================================================================
+   KOŃCOWE DEKLARACJE
+   ================================================================================ */
+
+/* Reset dla niektórych elementów JavaFX */
+.scroll-pane > .corner {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .scroll-bar:horizontal,
+.scroll-pane > .scroll-bar:vertical {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .scroll-bar:horizontal .thumb,
+.scroll-pane > .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(220, 20, 60, 0.3);
+    -fx-background-radius: 5;
+}
+
+.scroll-pane > .scroll-bar:horizontal .thumb:hover,
+.scroll-pane > .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: rgba(220, 20, 60, 0.5);
+}
+
+/* Focus ring customization */
+.text-input:focused {
+    -fx-focus-color: -fx-primary-red;
+    -fx-faint-focus-color: rgba(220, 20, 60, 0.2);
+}
+
+/* Selection color */
+.text-input .selection {
+    -fx-background-color: rgba(220, 20, 60, 0.3);
+}
+
+/* Placeholder text */
+.text-input .prompt-text {
+    -fx-text-fill: rgba(108, 117, 125, 0.7);
+    -fx-font-style: italic;
+}
+
+/* ================================================================================
+   KONIEC PLIKU STYLES.CSS
+   Kompletny plik stylów dla dziennika online JavaFX
+   Zawiera wszystkie style dla głównej aplikacji + dziennik obecności
+   ================================================================================ */

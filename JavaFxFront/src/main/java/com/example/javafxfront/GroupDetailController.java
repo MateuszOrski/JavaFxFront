@@ -4,6 +4,8 @@ import javafx.animation.ScaleTransition;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
@@ -42,6 +44,7 @@ public class GroupDetailController {
     @FXML private Button removeStudentButton;
     @FXML private Button removeScheduleButton;
     @FXML private Button backButton;
+    @FXML private Button showReportButton; // DODANE - przycisk dziennika
 
     @FXML private Button refreshStudentsButton;
     @FXML private Button refreshSchedulesButton;
@@ -50,7 +53,7 @@ public class GroupDetailController {
     private GroupService groupService;
     private StudentService studentService;
     private ScheduleService scheduleService;
-    private AttendanceService attendanceService; // DODANE
+    private AttendanceService attendanceService;
 
     private Group currentGroup;
     private ObservableList<Student> students;
@@ -63,7 +66,7 @@ public class GroupDetailController {
         groupService = new GroupService();
         studentService = new StudentService();
         scheduleService = new ScheduleService();
-        attendanceService = new AttendanceService(); // DODANE
+        attendanceService = new AttendanceService();
 
         studentsListView.setItems(students);
         scheduleListView.setItems(schedules);
@@ -153,6 +156,31 @@ public class GroupDetailController {
     private void updateCounts() {
         studentCountLabel.setText("Liczba studentów: " + students.size());
         scheduleCountLabel.setText("Liczba terminów: " + schedules.size());
+
+        // DODANE - Sprawdź czy można wygenerować dziennik obecności
+        if (showReportButton != null) {
+            boolean canGenerateReport = !students.isEmpty() && !schedules.isEmpty();
+            showReportButton.setDisable(!canGenerateReport);
+
+            if (canGenerateReport) {
+                // Sprawdź czy są jakieś dane o obecności
+                long totalAttendanceEntries = schedules.stream()
+                        .mapToLong(s -> s.getAttendances().size())
+                        .sum();
+
+                if (totalAttendanceEntries > 0) {
+                    showReportButton.setText("📊 Dziennik obecności (" + totalAttendanceEntries + ")");
+                    showReportButton.setStyle(showReportButton.getStyle().replaceAll("-fx-background-color:[^;]*;", "") +
+                            "; -fx-background-color: linear-gradient(to bottom, #38A169, #2F855A);");
+                } else {
+                    showReportButton.setText("📊 Dziennik obecności (pusty)");
+                    showReportButton.setStyle(showReportButton.getStyle().replaceAll("-fx-background-color:[^;]*;", "") +
+                            "; -fx-background-color: linear-gradient(to bottom, #F56500, #DD6B20);");
+                }
+            } else {
+                showReportButton.setText("📊 Dziennik obecności");
+            }
+        }
     }
 
     private void loadDataFromServer() {
@@ -188,7 +216,7 @@ public class GroupDetailController {
                         schedules.clear();
                         schedules.addAll(serverSchedules);
 
-                        // DODANE - Załaduj obecności dla każdego terminu
+                        // Załaduj obecności dla każdego terminu
                         for (ClassSchedule schedule : serverSchedules) {
                             loadAttendanceFromServerSilent(schedule);
                         }
@@ -206,7 +234,7 @@ public class GroupDetailController {
                 });
     }
 
-    // DODANE - Metoda do cichego ładowania obecności (bez alertów)
+    // Metoda do cichego ładowania obecności (bez alertów)
     private void loadAttendanceFromServerSilent(ClassSchedule schedule) {
         if (schedule.getId() != null) {
             attendanceService.getAttendancesByScheduleAsync(schedule.getId())
@@ -226,7 +254,7 @@ public class GroupDetailController {
         }
     }
 
-    // DODANE - Metoda do ładowania obecności z alertami
+    // Metoda do ładowania obecności z alertami
     private void loadAttendanceFromServer(ClassSchedule schedule) {
         if (schedule.getId() != null) {
             attendanceService.getAttendancesByScheduleAsync(schedule.getId())
@@ -404,6 +432,72 @@ public class GroupDetailController {
                 });
     }
 
+    // DODANE - Obsługa przycisku dziennika obecności
+    @FXML
+    protected void onShowReportClick() {
+        if (currentGroup == null) {
+            showAlert("Błąd", "Brak danych o grupie!", Alert.AlertType.ERROR);
+            return;
+        }
+
+        if (students.isEmpty()) {
+            showAlert("Info", "Brak studentów w grupie. Dodaj studentów aby wygenerować dziennik.",
+                    Alert.AlertType.INFORMATION);
+            return;
+        }
+
+        if (schedules.isEmpty()) {
+            showAlert("Info", "Brak terminów w grupie. Dodaj terminy aby wygenerować dziennik.",
+                    Alert.AlertType.INFORMATION);
+            return;
+        }
+
+        try {
+            // Animacja przycisku
+            animateButton(showReportButton);
+
+            // Załaduj FXML dla dziennika
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("attendance-report-view.fxml"));
+            Parent root = loader.load();
+
+            // Pobierz kontroler dziennika
+            AttendanceReportController reportController = loader.getController();
+
+            // Przekaż dane do kontrolera dziennika
+            reportController.setData(currentGroup, new java.util.ArrayList<>(students),
+                    new java.util.ArrayList<>(schedules));
+
+            // Utwórz nowe okno
+            Stage reportStage = new Stage();
+            reportStage.setTitle("📊 Dziennik obecności - " + currentGroup.getName());
+            reportStage.setScene(new Scene(root, 1200, 800));
+
+            // Dodaj stylizację
+            reportStage.getScene().getStylesheets().add(
+                    getClass().getResource("styles.css").toExternalForm());
+
+            // Ustaw minimalny rozmiar
+            reportStage.setMinWidth(1000);
+            reportStage.setMinHeight(600);
+
+            // Ustaw modalność - okno blokuje interakcję z rodzicielskim oknem
+            reportStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            reportStage.initOwner(showReportButton.getScene().getWindow());
+
+            // Pokaż okno dziennika
+            reportStage.show();
+
+            System.out.println("✅ Otwarto dziennik obecności dla grupy: " + currentGroup.getName());
+            System.out.println("📊 Studentów: " + students.size() + ", Terminów: " + schedules.size());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert("Błąd", "Nie udało się otworzyć dziennika obecności:\n" + e.getMessage(),
+                    Alert.AlertType.ERROR);
+            System.err.println("❌ Błąd otwierania dziennika: " + e.getMessage());
+        }
+    }
+
     private LocalTime parseTime(String timeText) throws DateTimeParseException {
         if (!timeText.matches("\\d{2}:\\d{2}")) {
             throw new DateTimeParseException("Invalid format", timeText, 0);
@@ -468,7 +562,7 @@ public class GroupDetailController {
             clearAllButton.setOnAction(e -> clearAllAttendances(schedule, newStage));
             clearAllButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-padding: 10 20; -fx-background-radius: 20;");
 
-            // DODANE - Przycisk ładowania obecności z serwera
+            // Przycisk ładowania obecności z serwera
             Button loadServerAttendanceButton = new Button("Załaduj z serwera");
             loadServerAttendanceButton.setOnAction(e -> {
                 loadAttendanceFromServer(schedule);
@@ -569,7 +663,7 @@ public class GroupDetailController {
         return row;
     }
 
-    // ZAKTUALIZOWANE - Metoda markAttendance z wysyłaniem na serwer
+    // Metoda markAttendance z wysyłaniem na serwer
     private void markAttendance(Student student, ClassSchedule schedule, Attendance.Status status, Label statusLabel) {
         Attendance attendance = new Attendance(student, schedule, status);
 
@@ -580,7 +674,7 @@ public class GroupDetailController {
         statusLabel.setText(status.getDisplayName());
         statusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: " + status.getColor() + ";");
 
-        // DODANE - Wyślij na serwer asynchronicznie
+        // Wyślij na serwer asynchronicznie
         if (schedule.getId() != null) { // Tylko jeśli termin ma ID z serwera
             attendanceService.markStudentAttendanceAsync(student, schedule.getId(), status, "")
                     .thenAccept(success -> {
@@ -595,7 +689,6 @@ public class GroupDetailController {
                     .exceptionally(throwable -> {
                         javafx.application.Platform.runLater(() -> {
                             System.err.println("❌ Błąd wysyłania obecności na serwer: " + throwable.getMessage());
-                            // Możesz tu dodać bardziej zaawansowaną obsługę błędów
                         });
                         return null;
                     });
@@ -607,7 +700,7 @@ public class GroupDetailController {
                 Alert.AlertType.INFORMATION);
     }
 
-    // ZAKTUALIZOWANE - Metoda clearAttendance z usuwaniem z serwera
+    // Metoda clearAttendance z usuwaniem z serwera
     private void clearAttendance(Student student, ClassSchedule schedule, Label statusLabel) {
         // Usuń lokalnie (natychmiastowa reakcja UI)
         schedule.removeAttendance(student);
@@ -616,7 +709,7 @@ public class GroupDetailController {
         statusLabel.setText("Nie zaznaczono");
         statusLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #6C757D;");
 
-        // DODANE - Usuń z serwera asynchronicznie
+        // Usuń z serwera asynchronicznie
         if (schedule.getId() != null) { // Tylko jeśli termin ma ID z serwera
             attendanceService.removeAttendanceAsync(student.getIndexNumber(), schedule.getId())
                     .thenAccept(success -> {
@@ -651,7 +744,7 @@ public class GroupDetailController {
         Optional<ButtonType> result = confirmAlert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
 
-            // DODANE - Usuń wszystkie z serwera jeśli to termin serwerowy
+            // Usuń wszystkie z serwera jeśli to termin serwerowy
             if (schedule.isFromServer() && schedule.getId() != null) {
                 // Usuń każdą obecność z serwera
                 for (Attendance attendance : schedule.getAttendances()) {
@@ -698,7 +791,7 @@ public class GroupDetailController {
                             javafx.application.Platform.runLater(() -> {
                                 students.remove(selectedStudent);
 
-                                // DODANE - Usuń studenta ze wszystkich terminów (lokalnie i z serwera)
+                                // Usuń studenta ze wszystkich terminów (lokalnie i z serwera)
                                 for (ClassSchedule schedule : schedules) {
                                     if (schedule.hasAttendanceForStudent(selectedStudent)) {
                                         // Usuń z serwera jeśli termin ma ID
@@ -901,7 +994,7 @@ public class GroupDetailController {
                 Label dateTimeLabel = new Label("Data: " + schedule.getFormattedStartTime() + " - " + schedule.getFormattedEndTime());
                 dateTimeLabel.getStyleClass().add("schedule-datetime");
 
-                // ZAKTUALIZOWANE - Lepszy status źródła
+                // Status źródła
                 Label sourceLabel = new Label();
                 if (schedule.isFromServer()) {
                     sourceLabel.setText("🔵 Serwer (ID: " + schedule.getId() + ")");
@@ -943,7 +1036,7 @@ public class GroupDetailController {
                 clickHintLabel.setStyle("-fx-text-fill: #6C757D; -fx-font-size: 10px; -fx-font-style: italic;");
                 cellContent.getChildren().add(clickHintLabel);
 
-                // DODANE - Informacja o synchronizacji z serwerem
+                // Informacja o synchronizacji z serwerem
                 if (schedule.isFromServer()) {
                     Label syncLabel = new Label("🔄 Synchronizacja z serwerem dostępna");
                     syncLabel.setStyle("-fx-text-fill: #38A169; -fx-font-size: 9px; -fx-font-style: italic;");
