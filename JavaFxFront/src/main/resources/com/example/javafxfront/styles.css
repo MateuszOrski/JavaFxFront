@@ -57,7 +57,7 @@
 }
 
 /* Główna karta */
-.main-card {
+.main-card, .form-card, .list-card {
     -fx-background-color: -fx-white;
     -fx-background-radius: 20;
     -fx-effect: dropshadow(gaussian, -fx-shadow, 15, 0, 0, 5);
@@ -66,7 +66,7 @@
     -fx-border-radius: 20;
 }
 
-.card-title {
+.card-title, .form-title {
     -fx-text-fill: -fx-primary-red;
     -fx-font-weight: bold;
     -fx-font-size: 18px;
@@ -99,6 +99,81 @@
     -fx-effect: dropshadow(gaussian, -fx-red-shadow, 5, 0, 0, 1);
 }
 
+/* TextArea dla uwag */
+.modern-textarea {
+    -fx-background-color: -fx-light-gray;
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 0 0 2 0;
+    -fx-background-radius: 8 8 0 0;
+    -fx-padding: 12;
+    -fx-font-size: 14px;
+    -fx-prompt-text-fill: -fx-dark-gray;
+}
+
+.modern-textarea:focused {
+    -fx-border-color: -fx-primary-red;
+    -fx-background-color: rgba(255, 245, 245, 0.8);
+    -fx-effect: dropshadow(gaussian, -fx-red-shadow, 5, 0, 0, 1);
+}
+
+.modern-textarea .content {
+    -fx-background-color: transparent;
+}
+
+/* DatePicker */
+.modern-date-picker {
+    -fx-background-color: -fx-light-gray;
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 0 0 2 0;
+    -fx-background-radius: 8 8 0 0;
+    -fx-padding: 12;
+}
+
+.modern-date-picker:focused {
+    -fx-border-color: -fx-primary-red;
+    -fx-background-color: rgba(255, 245, 245, 0.8);
+    -fx-effect: dropshadow(gaussian, -fx-red-shadow, 5, 0, 0, 1);
+}
+
+.modern-date-picker .text-field {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-font-size: 14px;
+    -fx-prompt-text-fill: -fx-dark-gray;
+}
+
+/* ComboBox */
+.modern-combobox {
+    -fx-background-color: -fx-light-gray;
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 0 0 2 0;
+    -fx-background-radius: 8 8 0 0;
+    -fx-padding: 12;
+}
+
+.modern-combobox:focused {
+    -fx-border-color: -fx-primary-red;
+    -fx-background-color: rgba(255, 245, 245, 0.8);
+    -fx-effect: dropshadow(gaussian, -fx-red-shadow, 5, 0, 0, 1);
+}
+
+/* Informacja o grupie w formularzu terminu */
+.group-info-box {
+    -fx-background-color: rgba(220, 20, 60, 0.05);
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+
+.assigned-group-label {
+    -fx-text-fill: -fx-primary-red;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+/* Spinner */
 .modern-spinner {
     -fx-background-color: -fx-light-gray;
     -fx-border-color: rgba(220, 20, 60, 0.2);
@@ -149,6 +224,25 @@
     -fx-cursor: default;
 }
 
+.secondary-button {
+    -fx-background-color: -fx-medium-gray;
+    -fx-text-fill: -fx-text-dark;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 20;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, -fx-shadow, 5, 0, 0, 1);
+}
+
+.secondary-button:hover {
+    -fx-background-color: -fx-dark-gray;
+    -fx-text-fill: -fx-white;
+    -fx-effect: dropshadow(gaussian, -fx-shadow, 8, 0, 0, 2);
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
 .danger-button {
     -fx-background-color: linear-gradient(to bottom, -fx-danger-red, #C53030);
     -fx-text-fill: -fx-white;
@@ -175,7 +269,7 @@
 }
 
 /* Lista grup */
-.groups-list {
+.groups-list, .modern-list {
     -fx-background-color: -fx-light-gray;
     -fx-border-color: rgba(220, 20, 60, 0.1);
     -fx-border-width: 1;
@@ -183,20 +277,20 @@
     -fx-background-radius: 10;
 }
 
-.groups-list .list-cell {
+.groups-list .list-cell, .modern-list .list-cell {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-padding: 8;
 }
 
-.groups-list .list-cell:selected {
+.groups-list .list-cell:selected, .modern-list .list-cell:selected {
     -fx-background-color: rgba(220, 20, 60, 0.1);
     -fx-border-color: -fx-primary-red;
     -fx-border-width: 0 0 0 3;
     -fx-background-radius: 8;
 }
 
-.groups-list .list-cell:hover {
+.groups-list .list-cell:hover, .modern-list .list-cell:hover {
     -fx-background-color: rgba(220, 20, 60, 0.05);
     -fx-background-radius: 8;
 }
@@ -224,14 +318,130 @@
     -fx-opacity: 0.8;
 }
 
-/* Licznik grup */
-.count-label {
+/* Komórki studentów */
+.student-cell {
+    -fx-spacing: 3;
+    -fx-padding: 5;
+}
+
+.student-name {
+    -fx-text-fill: -fx-primary-red;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+}
+
+.student-index {
+    -fx-text-fill: -fx-text-dark;
+    -fx-font-size: 12px;
+}
+
+.student-group {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-font-size: 11px;
+}
+
+.student-date {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-font-size: 10px;
+    -fx-opacity: 0.8;
+}
+
+/* Komórki terminów */
+.schedule-cell {
+    -fx-spacing: 3;
+    -fx-padding: 5;
+}
+
+.schedule-subject {
+    -fx-text-fill: -fx-primary-red;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+}
+
+.schedule-datetime {
+    -fx-text-fill: -fx-text-dark;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.schedule-classroom {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-font-size: 12px;
+}
+
+.schedule-instructor {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-font-size: 12px;
+}
+
+.schedule-group {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-font-size: 11px;
+}
+
+.schedule-created {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-font-size: 10px;
+    -fx-opacity: 0.8;
+}
+
+/* Liczniki */
+.count-label, .count-badge {
     -fx-text-fill: -fx-dark-gray;
     -fx-background-color: rgba(220, 20, 60, 0.1);
     -fx-background-radius: 12;
     -fx-padding: 4 12 4 12;
     -fx-font-size: 12px;
     -fx-font-weight: bold;
+}
+
+/* Header grupy */
+.group-header {
+    -fx-background-color: linear-gradient(to right, rgba(220, 20, 60, 0.05), rgba(255, 245, 245, 0.8));
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 0 0 2 0;
+}
+
+.group-header-name {
+    -fx-text-fill: -fx-primary-red;
+    -fx-font-weight: bold;
+}
+
+.group-header-spec {
+    -fx-text-fill: -fx-dark-gray;
+}
+
+/* Taby */
+.main-tabs .tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: -fx-light-gray;
+}
+
+.main-tabs .tab-pane .tab-header-area .tab {
+    -fx-background-color: -fx-medium-gray;
+    -fx-background-radius: 10 10 0 0;
+    -fx-padding: 10 20 10 20;
+}
+
+.main-tabs .tab-pane .tab-header-area .tab:selected {
+    -fx-background-color: -fx-white;
+    -fx-border-color: -fx-primary-red;
+    -fx-border-width: 0 0 2 0;
+}
+
+.main-tabs .tab-pane .tab-header-area .tab .tab-label {
+    -fx-text-fill: -fx-text-dark;
+    -fx-font-weight: bold;
+}
+
+.main-tabs .tab-pane .tab-header-area .tab:selected .tab-label {
+    -fx-text-fill: -fx-primary-red;
+}
+
+/* Status serwera */
+.server-status {
+    -fx-font-size: 11px;
+    -fx-padding: 3 8 3 8;
+    -fx-background-radius: 10;
 }
 
 /* Sekcja informacyjna */
@@ -256,4 +466,52 @@
     -fx-spacing: 8;
     -fx-border-color: rgba(220, 20, 60, 0.1);
     -fx-border-width: 1;
-    -fx-border-radius
+    -fx-border-radius: 15;
+}
+
+.instruction-number {
+    -fx-text-fill: -fx-primary-red;
+    -fx-font-weight: bold;
+    -fx-font-size: 20px;
+    -fx-background-color: rgba(220, 20, 60, 0.1);
+    -fx-background-radius: 20;
+    -fx-padding: 8;
+    -fx-min-width: 40;
+    -fx-alignment: CENTER;
+}
+
+.instruction-title {
+    -fx-text-fill: -fx-text-dark;
+    -fx-font-weight: bold;
+}
+
+.instruction-desc {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-text-alignment: CENTER;
+}
+
+/* Footer */
+.footer {
+    -fx-background-color: linear-gradient(to right, rgba(220, 20, 60, 0.05), rgba(255, 245, 245, 0.8));
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 2 0 0 0;
+}
+
+.footer-text {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-font-size: 12px;
+}
+
+/* Alert dialogs */
+.alert-dialog {
+    -fx-background-color: -fx-white;
+}
+
+.alert-dialog .header-panel {
+    -fx-background-color: linear-gradient(to right, -fx-primary-red, -fx-dark-red);
+}
+
+.alert-dialog .header-panel .label {
+    -fx-text-fill: -fx-white;
+    -fx-font-weight: bold;
+}

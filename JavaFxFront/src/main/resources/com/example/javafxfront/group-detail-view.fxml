@@ -123,7 +123,7 @@
                     <Tab text="Terminy">
                         <HBox spacing="20.0" alignment="TOP_CENTER">
 
-                            <!-- Add Termin Form -->
+                            <!-- Add Termin Form - ROZSZERZONY -->
                             <VBox spacing="15.0" styleClass="form-card" maxWidth="350.0" minWidth="300.0">
                                 <padding>
                                     <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
@@ -137,8 +137,29 @@
 
                                 <VBox spacing="10.0">
                                     <VBox spacing="5.0">
-                                        <Label styleClass="field-label" text="Termin:" />
-                                        <TextField fx:id="terminField" promptText="np. Egzamin z Javy" styleClass="modern-field" />
+                                        <Label styleClass="field-label" text="Nazwa terminu:" />
+                                        <TextField fx:id="terminNameField" promptText="np. Egzamin z Javy" styleClass="modern-field" />
+                                    </VBox>
+
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Data:" />
+                                        <DatePicker fx:id="terminDatePicker" promptText="Wybierz datę" styleClass="modern-date-picker" />
+                                    </VBox>
+
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Godzina rozpoczęcia:" />
+                                        <TextField fx:id="terminStartTimeField" promptText="HH:MM (np. 10:15)" styleClass="modern-field" />
+                                    </VBox>
+
+                                    <VBox spacing="5.0">
+                                        <Label styleClass="field-label" text="Godzina zakończenia:" />
+                                        <TextField fx:id="terminEndTimeField" promptText="HH:MM (np. 12:00)" styleClass="modern-field" />
+                                    </VBox>
+
+                                    <!-- Informacja o grupie -->
+                                    <VBox spacing="5.0" styleClass="group-info-box">
+                                        <Label styleClass="field-label" text="Grupa:" />
+                                        <Label fx:id="terminGroupLabel" styleClass="assigned-group-label" text="[Nazwa grupy]" />
                                     </VBox>
                                 </VBox>
 
