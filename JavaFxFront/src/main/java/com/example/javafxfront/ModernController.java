@@ -25,6 +25,11 @@ public class ModernController {
     @FXML private ComboBox<String> groupSelectionComboBox;
     @FXML private Button addStudentGlobalButton;
     @FXML private VBox addStudentCard;
+    @FXML private DatePicker scheduleDatePicker;
+    @FXML private TextField scheduleTimeField;
+    @FXML private ComboBox<String> scheduleGroupComboBox;
+    @FXML private Button addScheduleGlobalButton;
+    @FXML private VBox addScheduleCard;
     @FXML private ListView<Group> groupsListView;
     @FXML private Button enterGroupButton;
     @FXML private Button deleteGroupButton;
@@ -62,6 +67,7 @@ public class ModernController {
         checkServerConnection();
         setupStudentIndexValidation();
         updateGroupComboBox();
+        setupTimeFieldValidation();
     }
 
     @FXML
@@ -184,6 +190,58 @@ public class ModernController {
         clearStudentGlobalForm();
     }
 
+    @FXML
+    protected void onAddScheduleGlobalClick() {
+        // TODO: Implementacja dodawania terminu do globalnej bazy
+        java.time.LocalDate date = scheduleDatePicker.getValue();
+        String timeText = scheduleTimeField.getText().trim();
+        String selectedGroup = scheduleGroupComboBox.getValue();
+
+        if (date == null || timeText.isEmpty() || selectedGroup == null) {
+            showAlert("Błąd", "Wszystkie pola muszą być wypełnione!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        // Walidacja formatu czasu
+        if (!timeText.matches("\\d{2}:\\d{2}")) {
+            showAlert("Błąd", "Godzina musi być w formacie HH:MM (np. 10:15)!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        // Sprawdź czy godzina jest prawidłowa
+        String[] timeParts = timeText.split(":");
+        try {
+            int hours = Integer.parseInt(timeParts[0]);
+            int minutes = Integer.parseInt(timeParts[1]);
+
+            if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                showAlert("Błąd", "Nieprawidłowa godzina! Użyj formatu 00:00 - 23:59", Alert.AlertType.WARNING);
+                return;
+            }
+        } catch (NumberFormatException e) {
+            showAlert("Błąd", "Nieprawidłowy format godziny!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        // Placeholder - na razie tylko pokaz co zostało wprowadzone
+        showAlert("Informacja",
+                "Termin zostanie dodany do bazy:" +
+                        "\nData: " + date.toString() +
+                        "\nGodzina: " + timeText +
+                        "\nGrupa: " + selectedGroup +
+                        "\n\n(Logika będzie zaimplementowana później)",
+                Alert.AlertType.INFORMATION);
+
+        // Wyczyść formularz
+        clearScheduleGlobalForm();
+    }
+
+    private void clearScheduleGlobalForm() {
+        scheduleDatePicker.setValue(null);
+        scheduleTimeField.clear();
+        scheduleGroupComboBox.setValue(null);
+    }
+
     /**
      * Otwiera okno szczegółów grupy
      */
@@ -303,19 +361,22 @@ public class ModernController {
     }
 
     private void setupStudentIndexValidation() {
-        // Dodaj listener do pola numeru indeksu - tylko cyfry, max 6 znaków
-        studentIndexField.textProperty().addListener((observable, oldValue, newValue) -> {
-            // Usuń wszystko co nie jest cyfrą
-            String digitsOnly = newValue.replaceAll("[^0-9]", "");
-            // Ogranicz do 6 cyfr
-            if (digitsOnly.length() > 6) {
-                digitsOnly = digitsOnly.substring(0, 6);
-            }
-            // Ustaw nową wartość tylko jeśli się zmieniła
-            if (!digitsOnly.equals(newValue)) {
-                studentIndexField.setText(digitsOnly);
-            }
-        });
+        // Sprawdź czy pole istnieje (może być null jeśli FXML się nie załadował prawidłowo)
+        if (studentIndexField != null) {
+            // Dodaj listener do pola numeru indeksu - tylko cyfry, max 6 znaków
+            studentIndexField.textProperty().addListener((observable, oldValue, newValue) -> {
+                // Usuń wszystko co nie jest cyfrą
+                String digitsOnly = newValue.replaceAll("[^0-9]", "");
+                // Ogranicz do 6 cyfr
+                if (digitsOnly.length() > 6) {
+                    digitsOnly = digitsOnly.substring(0, 6);
+                }
+                // Ustaw nową wartość tylko jeśli się zmieniła
+                if (!digitsOnly.equals(newValue)) {
+                    studentIndexField.setText(digitsOnly);
+                }
+            });
+        }
     }
 
     private void updateGroupComboBox() {
@@ -325,6 +386,34 @@ public class ModernController {
             groupNames.add(group.getName());
         }
         groupSelectionComboBox.setItems(groupNames);
+        scheduleGroupComboBox.setItems(groupNames); // Aktualizuj też ComboBox dla terminów
+    }
+
+    private void setupTimeFieldValidation() {
+        // Sprawdź czy pole istnieje (może być null jeśli FXML się nie załadował prawidłowo)
+        if (scheduleTimeField != null) {
+            // Dodaj listener do pola godziny - format HH:MM
+            scheduleTimeField.textProperty().addListener((observable, oldValue, newValue) -> {
+                // Usuń wszystko co nie jest cyfrą ani dwukropkiem
+                String filtered = newValue.replaceAll("[^0-9:]", "");
+
+                // Ogranicz do formatu HH:MM (maksymalnie 5 znaków)
+                if (filtered.length() > 5) {
+                    filtered = filtered.substring(0, 5);
+                }
+
+                // Automatycznie dodaj dwukropek po 2 cyfrach
+                if (filtered.length() == 2 && !filtered.contains(":")) {
+                    filtered = filtered + ":";
+                }
+
+                // Ustaw nową wartość tylko jeśli się zmieniła
+                if (!filtered.equals(newValue)) {
+                    scheduleTimeField.setText(filtered);
+                    scheduleTimeField.positionCaret(filtered.length());
+                }
+            });
+        }
     }
 
     private void updateGroupCount() {

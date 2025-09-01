@@ -35,7 +35,7 @@
                             <Font size="12.0" />
                         </font>
                     </Label>
-                    <Label fx:id="scheduleCountLabel" styleClass="count-badge" text="Liczba zajęć: 0">
+                    <Label fx:id="scheduleCountLabel" styleClass="count-badge" text="Liczba terminów: 0">
                         <font>
                             <Font size="12.0" />
                         </font>
@@ -119,17 +119,17 @@
                         </HBox>
                     </Tab>
 
-                    <!-- Schedule Tab -->
-                    <Tab text="Plan zajęć">
+                    <!-- Terminy Tab -->
+                    <Tab text="Terminy">
                         <HBox spacing="20.0" alignment="TOP_CENTER">
 
-                            <!-- Add Schedule Form -->
+                            <!-- Add Termin Form -->
                             <VBox spacing="15.0" styleClass="form-card" maxWidth="350.0" minWidth="300.0">
                                 <padding>
                                     <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                                 </padding>
 
-                                <Label styleClass="form-title" text="Dodaj zajęcia">
+                                <Label styleClass="form-title" text="Dodaj termin">
                                     <font>
                                         <Font name="System Bold" size="16.0" />
                                     </font>
@@ -137,54 +137,22 @@
 
                                 <VBox spacing="10.0">
                                     <VBox spacing="5.0">
-                                        <Label styleClass="field-label" text="Przedmiot:" />
-                                        <TextField fx:id="subjectField" promptText="np. Programowanie w Javie" styleClass="modern-field" />
-                                    </VBox>
-
-                                    <VBox spacing="5.0">
-                                        <Label styleClass="field-label" text="Sala:" />
-                                        <TextField fx:id="classroomField" promptText="np. Sala 101" styleClass="modern-field" />
-                                    </VBox>
-
-                                    <VBox spacing="5.0">
-                                        <Label styleClass="field-label" text="Data:" />
-                                        <DatePicker fx:id="datePicker" styleClass="modern-date-picker" />
-                                    </VBox>
-
-                                    <HBox spacing="10.0">
-                                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                            <Label styleClass="field-label" text="Od:" />
-                                            <TextField fx:id="startTimeField" promptText="HH:MM" styleClass="modern-field" />
-                                        </VBox>
-                                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                            <Label styleClass="field-label" text="Do:" />
-                                            <TextField fx:id="endTimeField" promptText="HH:MM" styleClass="modern-field" />
-                                        </VBox>
-                                    </HBox>
-
-                                    <VBox spacing="5.0">
-                                        <Label styleClass="field-label" text="Prowadzący:" />
-                                        <TextField fx:id="instructorField" promptText="np. Dr Jan Kowalski" styleClass="modern-field" />
-                                    </VBox>
-
-                                    <VBox spacing="5.0">
-                                        <Label styleClass="field-label" text="Uwagi:" />
-                                        <TextArea fx:id="notesArea" promptText="Dodatkowe informacje (opcjonalne)"
-                                                  styleClass="modern-textarea" prefRowCount="3" maxHeight="80.0" />
+                                        <Label styleClass="field-label" text="Termin:" />
+                                        <TextField fx:id="terminField" promptText="np. Egzamin z Javy" styleClass="modern-field" />
                                     </VBox>
                                 </VBox>
 
-                                <Button fx:id="addScheduleButton" mnemonicParsing="false" onAction="#onAddScheduleClick"
-                                        styleClass="primary-button" text="Dodaj zajęcia" maxWidth="Infinity" />
+                                <Button fx:id="addTerminButton" mnemonicParsing="false" onAction="#onAddTerminClick"
+                                        styleClass="primary-button" text="Dodaj termin" maxWidth="Infinity" />
                             </VBox>
 
-                            <!-- Schedule List -->
+                            <!-- Terminy List -->
                             <VBox spacing="15.0" styleClass="list-card" VBox.vgrow="ALWAYS" minWidth="400.0">
                                 <padding>
                                     <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                                 </padding>
 
-                                <Label styleClass="form-title" text="Harmonogram zajęć">
+                                <Label styleClass="form-title" text="Lista terminów">
                                     <font>
                                         <Font name="System Bold" size="16.0" />
                                     </font>
@@ -195,7 +163,7 @@
 
                                 <HBox alignment="CENTER" spacing="10.0">
                                     <Button fx:id="removeScheduleButton" mnemonicParsing="false" onAction="#onRemoveScheduleClick"
-                                            styleClass="danger-button" text="Usuń zajęcia" />
+                                            styleClass="danger-button" text="Usuń termin" />
                                 </HBox>
                             </VBox>
                         </HBox>

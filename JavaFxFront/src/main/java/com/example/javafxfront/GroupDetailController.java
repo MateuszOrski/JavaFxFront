@@ -4,10 +4,13 @@ import javafx.animation.ScaleTransition;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -25,15 +28,9 @@ public class GroupDetailController {
     @FXML private TextField indexNumberField;
     @FXML private Button addStudentButton;
 
-    // Schedule form
-    @FXML private TextField subjectField;
-    @FXML private TextField classroomField;
-    @FXML private DatePicker datePicker;
-    @FXML private TextField startTimeField;
-    @FXML private TextField endTimeField;
-    @FXML private TextField instructorField;
-    @FXML private TextArea notesArea;
-    @FXML private Button addScheduleButton;
+    // Termin form - uproszczony
+    @FXML private TextField terminField;
+    @FXML private Button addTerminButton;
 
     // Lists
     @FXML private ListView<Student> studentsListView;
@@ -70,13 +67,17 @@ public class GroupDetailController {
             removeScheduleButton.setDisable(newSelection == null);
         });
 
+        // Dodaj listener do kliknięcia na termin
+        scheduleListView.setOnMouseClicked(event -> {
+            ClassSchedule selectedSchedule = scheduleListView.getSelectionModel().getSelectedItem();
+            if (selectedSchedule != null) {
+                openEmptyWindow();
+            }
+        });
+
         // Początkowy stan przycisków
         removeStudentButton.setDisable(true);
         removeScheduleButton.setDisable(true);
-
-        // Placeholder tekst dla pól czasu
-        startTimeField.setPromptText("HH:MM (np. 10:15)");
-        endTimeField.setPromptText("HH:MM (np. 11:45)");
 
         // Dodaj listener do pola numeru indeksu - tylko cyfry, max 6 znaków
         indexNumberField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -109,11 +110,11 @@ public class GroupDetailController {
 
     private void updateCounts() {
         studentCountLabel.setText("Liczba studentów: " + students.size());
-        scheduleCountLabel.setText("Liczba zajęć: " + schedules.size());
+        scheduleCountLabel.setText("Liczba terminów: " + schedules.size());
     }
 
     private void loadSampleData() {
-        // Aplikacja startuje bez przykładowych studentów i zajęć
+        // Aplikacja startuje bez przykładowych studentów i terminów
         updateCounts();
     }
 
@@ -156,47 +157,68 @@ public class GroupDetailController {
     }
 
     @FXML
-    protected void onAddScheduleClick() {
-        String subject = subjectField.getText().trim();
-        String classroom = classroomField.getText().trim();
-        LocalDate date = datePicker.getValue();
-        String startTimeText = startTimeField.getText().trim();
-        String endTimeText = endTimeField.getText().trim();
-        String instructor = instructorField.getText().trim();
-        String notes = notesArea.getText().trim();
+    protected void onAddTerminClick() {
+        String termin = terminField.getText().trim();
 
-        if (subject.isEmpty() || classroom.isEmpty() || date == null ||
-                startTimeText.isEmpty() || endTimeText.isEmpty() || instructor.isEmpty()) {
-            showAlert("Błąd", "Wszystkie wymagane pola zajęć muszą być wypełnione!", Alert.AlertType.WARNING);
+        if (termin.isEmpty()) {
+            showAlert("Błąd", "Pole terminu musi być wypełnione!", Alert.AlertType.WARNING);
             return;
         }
 
+        // Utworzenie terminu z automatycznym przypisaniem grupy
+        // Używamy aktualnej daty i czasu jako domyślnych wartości
+        LocalDateTime now = LocalDateTime.now();
+        ClassSchedule newTermin = new ClassSchedule(
+            termin,           // subject jako termin
+            "",              // pusta sala
+            now,             // czas rozpoczęcia
+            now.plusHours(1), // czas zakończenia (1 godzina później)
+            "",              // pusty prowadzący
+            "",              // puste uwagi
+            currentGroup.getName() // automatycznie przypisana grupa
+        );
+        
+        schedules.add(newTermin);
+
+        // Animacja i czyszczenie
+        animateButton(addTerminButton);
+        clearTerminForm();
+        updateCounts();
+
+        showAlert("Sukces", "Termin '" + termin + "' został dodany do grupy " + currentGroup.getName() + "!",
+                Alert.AlertType.INFORMATION);
+    }
+
+    private void openEmptyWindow() {
         try {
-            LocalTime startTime = LocalTime.parse(startTimeText);
-            LocalTime endTime = LocalTime.parse(endTimeText);
-
-            if (startTime.isAfter(endTime)) {
-                showAlert("Błąd", "Czas rozpoczęcia musi być wcześniejszy niż czas zakończenia!", Alert.AlertType.WARNING);
-                return;
-            }
-
-            LocalDateTime startDateTime = LocalDateTime.of(date, startTime);
-            LocalDateTime endDateTime = LocalDateTime.of(date, endTime);
-
-            // Dodanie zajęć
-            ClassSchedule newSchedule = new ClassSchedule(subject, classroom, startDateTime,
-                    endDateTime, instructor, notes);
-            schedules.add(newSchedule);
-
-            // Animacja i czyszczenie
-            animateButton(addScheduleButton);
-            clearScheduleForm();
-            updateCounts();
-
-            showAlert("Sukces", "Zajęcia '" + subject + "' zostały dodane!", Alert.AlertType.INFORMATION);
-
+            // Tworzenie nowego okna
+            Stage newStage = new Stage();
+            newStage.setTitle("Nowe okno - " + currentGroup.getName());
+            newStage.setWidth(600);
+            newStage.setHeight(400);
+            
+            // Tworzenie pustego kontenera
+            VBox root = new VBox(20);
+            root.setStyle("-fx-background-color: white; -fx-padding: 20;");
+            
+            Label titleLabel = new Label("Puste okno dla terminu");
+            titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+            
+            Label infoLabel = new Label("To jest puste okno otwarte po kliknięciu na termin.");
+            infoLabel.setStyle("-fx-font-size: 14px;");
+            
+            Button closeButton = new Button("Zamknij");
+            closeButton.setOnAction(e -> newStage.close());
+            closeButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-padding: 10 20;");
+            
+            root.getChildren().addAll(titleLabel, infoLabel, closeButton);
+            
+            Scene scene = new Scene(root);
+            newStage.setScene(scene);
+            newStage.show();
+            
         } catch (Exception e) {
-            showAlert("Błąd", "Nieprawidłowy format czasu! Użyj formatu HH:MM (np. 10:15)", Alert.AlertType.WARNING);
+            showAlert("Błąd", "Nie udało się otworzyć nowego okna: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
@@ -230,9 +252,9 @@ public class GroupDetailController {
         if (selectedSchedule != null) {
             Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
             confirmAlert.setTitle("Potwierdzenie usunięcia");
-            confirmAlert.setHeaderText("Czy na pewno chcesz usunąć zajęcia?");
-            confirmAlert.setContentText("Zajęcia: " + selectedSchedule.getSubject() +
-                    "\nTermin: " + selectedSchedule.getFormattedTimeRange() +
+            confirmAlert.setHeaderText("Czy na pewno chcesz usunąć termin?");
+            confirmAlert.setContentText("Termin: " + selectedSchedule.getSubject() +
+                    "\nGrupa: " + selectedSchedule.getGroupName() +
                     "\n\nTa operacja jest nieodwracalna!");
 
             Optional<ButtonType> result = confirmAlert.showAndWait();
@@ -241,7 +263,7 @@ public class GroupDetailController {
                 animateButton(removeScheduleButton);
                 updateCounts();
 
-                showAlert("Usunięto", "Zajęcia '" + selectedSchedule.getSubject() + "' zostały usunięte.",
+                showAlert("Usunięto", "Termin '" + selectedSchedule.getSubject() + "' został usunięty.",
                         Alert.AlertType.INFORMATION);
             }
         }
@@ -260,14 +282,8 @@ public class GroupDetailController {
         indexNumberField.clear();
     }
 
-    private void clearScheduleForm() {
-        subjectField.clear();
-        classroomField.clear();
-        datePicker.setValue(null);
-        startTimeField.clear();
-        endTimeField.clear();
-        instructorField.clear();
-        notesArea.clear();
+    private void clearTerminForm() {
+        terminField.clear();
     }
 
     private void animateButton(Button button) {
@@ -336,13 +352,13 @@ public class GroupDetailController {
                 Label subjectLabel = new Label(schedule.getSubject());
                 subjectLabel.getStyleClass().add("schedule-subject");
 
-                Label timeLabel = new Label(schedule.getFormattedTimeRange());
+                Label groupLabel = new Label("Grupa: " + schedule.getGroupName());
+                groupLabel.getStyleClass().add("schedule-group");
+
+                Label timeLabel = new Label("Dodano: " + schedule.getFormattedCreatedDate());
                 timeLabel.getStyleClass().add("schedule-time");
 
-                Label roomLabel = new Label("Sala: " + schedule.getClassroom() + " • " + schedule.getInstructor());
-                roomLabel.getStyleClass().add("schedule-details");
-
-                cellContent.getChildren().addAll(subjectLabel, timeLabel, roomLabel);
+                cellContent.getChildren().addAll(subjectLabel, groupLabel, timeLabel);
                 setGraphic(cellContent);
                 setText(null);
             }

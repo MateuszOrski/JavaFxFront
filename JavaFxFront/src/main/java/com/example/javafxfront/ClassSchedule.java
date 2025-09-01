@@ -10,16 +10,18 @@ public class ClassSchedule {
     private LocalDateTime endTime;
     private String instructor;
     private String notes;
+    private String groupName;
     private LocalDateTime createdDate;
 
     public ClassSchedule(String subject, String classroom, LocalDateTime startTime,
-                         LocalDateTime endTime, String instructor, String notes) {
+                         LocalDateTime endTime, String instructor, String notes, String groupName) {
         this.subject = subject;
         this.classroom = classroom;
         this.startTime = startTime;
         this.endTime = endTime;
         this.instructor = instructor;
         this.notes = notes;
+        this.groupName = groupName;
         this.createdDate = LocalDateTime.now();
     }
 
@@ -30,6 +32,7 @@ public class ClassSchedule {
     public LocalDateTime getEndTime() { return endTime; }
     public String getInstructor() { return instructor; }
     public String getNotes() { return notes; }
+    public String getGroupName() { return groupName; }
     public LocalDateTime getCreatedDate() { return createdDate; }
 
     // Setters
@@ -39,6 +42,7 @@ public class ClassSchedule {
     public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
     public void setInstructor(String instructor) { this.instructor = instructor; }
     public void setNotes(String notes) { this.notes = notes; }
+    public void setGroupName(String groupName) { this.groupName = groupName; }
 
     public String getFormattedStartTime() {
         return startTime.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
