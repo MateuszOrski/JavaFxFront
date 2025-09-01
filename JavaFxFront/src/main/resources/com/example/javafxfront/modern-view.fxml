@@ -106,66 +106,20 @@
                                 <TextField fx:id="studentIndexField" promptText="6 cyfr (np. 123456)" styleClass="modern-field" />
                             </VBox>
 
-                            <VBox spacing="5.0">
-                                <Label styleClass="field-label" text="Grupa (opcjonalnie):">
-                                    <font>
-                                        <Font name="System Bold" size="11.0" />
-                                    </font>
-                                </Label>
-                                <ComboBox fx:id="groupSelectionComboBox" promptText="Wybierz grupę"
-                                          styleClass="modern-combobox" maxWidth="Infinity" />
-                            </VBox>
+                            <!-- USUNIĘTO COMBOBOX Z GRUPAMI - PRZYPISANIE TYLKO W DRUGIM OKNIE -->
+
+                            <Label styleClass="info-note" text="Przypisanie do grupy możliwe w oknie szczegółów grupy">
+                                <font>
+                                    <Font size="10.0" />
+                                </font>
+                            </Label>
                         </VBox>
 
                         <Button fx:id="addStudentGlobalButton" mnemonicParsing="false" onAction="#onAddStudentGlobalClick"
                                 styleClass="primary-button" text="Dodaj studenta" maxWidth="Infinity" />
                     </VBox>
 
-                    <!-- Add Schedule Card -->
-                    <VBox fx:id="addScheduleCard" alignment="TOP_CENTER" spacing="20.0" styleClass="main-card" maxWidth="300.0" minWidth="280.0">
-                        <padding>
-                            <Insets bottom="25.0" left="25.0" right="25.0" top="25.0" />
-                        </padding>
-
-                        <Label styleClass="card-title" text="Dodaj termin">
-                            <font>
-                                <Font name="System Bold" size="16.0" />
-                            </font>
-                        </Label>
-
-                        <VBox spacing="15.0" styleClass="form-container">
-                            <VBox spacing="5.0">
-                                <Label styleClass="field-label" text="Data:">
-                                    <font>
-                                        <Font name="System Bold" size="11.0" />
-                                    </font>
-                                </Label>
-                                <DatePicker fx:id="scheduleDatePicker" promptText="Wybierz datę" styleClass="modern-date-picker" />
-                            </VBox>
-
-                            <VBox spacing="5.0">
-                                <Label styleClass="field-label" text="Godzina:">
-                                    <font>
-                                        <Font name="System Bold" size="11.0" />
-                                    </font>
-                                </Label>
-                                <TextField fx:id="scheduleTimeField" promptText="HH:MM (np. 10:15)" styleClass="modern-field" />
-                            </VBox>
-
-                            <VBox spacing="5.0">
-                                <Label styleClass="field-label" text="Grupa:">
-                                    <font>
-                                        <Font name="System Bold" size="11.0" />
-                                    </font>
-                                </Label>
-                                <ComboBox fx:id="scheduleGroupComboBox" promptText="Wybierz grupę"
-                                          styleClass="modern-combobox" maxWidth="Infinity" />
-                            </VBox>
-                        </VBox>
-
-                        <Button fx:id="addScheduleGlobalButton" mnemonicParsing="false" onAction="#onAddScheduleGlobalClick"
-                                styleClass="primary-button" text="Dodaj termin" maxWidth="Infinity" />
-                    </VBox>
+                    <!-- USUNIĘTO CAŁĄ KARTĘ Z DODAWANIEM TERMINÓW -->
 
                     <!-- Groups List Card -->
                     <VBox fx:id="groupsCard" alignment="TOP_CENTER" spacing="20.0" styleClass="main-card"
@@ -256,7 +210,7 @@
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="Wypełnij dane studenta i przypisz do grupy"
+                            <Label styleClass="instruction-desc" text="Wypełnij dane studenta (bez grupy)"
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -270,12 +224,12 @@
                                     <Font name="System Bold" size="20.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-title" text="Dodaj termin">
+                            <Label styleClass="instruction-title" text="Zarządzaj grupami">
                                 <font>
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="Ustaw datę, godzinę i przypisz grupę"
+                            <Label styleClass="instruction-desc" text="Wejdź do grupy lub usuń ją z systemu"
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -289,12 +243,31 @@
                                     <Font name="System Bold" size="20.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-title" text="Zarządzaj grupami">
+                            <Label styleClass="instruction-title" text="Przypisuj studentów">
                                 <font>
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="Wejdź do grupy lub usuń ją z systemu"
+                            <Label styleClass="instruction-desc" text="W oknie grupy dodawaj studentów do konkretnej grupy"
+                                   textAlignment="CENTER" wrapText="true">
+                                <font>
+                                    <Font size="12.0" />
+                                </font>
+                            </Label>
+                        </VBox>
+
+                        <VBox alignment="CENTER" spacing="8.0" styleClass="instruction-item" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Label styleClass="instruction-number" text="5">
+                                <font>
+                                    <Font name="System Bold" size="20.0" />
+                                </font>
+                            </Label>
+                            <Label styleClass="instruction-title" text="Dodawaj terminy">
+                                <font>
+                                    <Font name="System Bold" size="14.0" />
+                                </font>
+                            </Label>
+                            <Label styleClass="instruction-desc" text="W oknie grupy twórz terminy egzaminów i zajęć"
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />

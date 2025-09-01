@@ -22,14 +22,8 @@ public class ModernController {
     @FXML private TextField studentFirstNameField;
     @FXML private TextField studentLastNameField;
     @FXML private TextField studentIndexField;
-    @FXML private ComboBox<String> groupSelectionComboBox;
     @FXML private Button addStudentGlobalButton;
     @FXML private VBox addStudentCard;
-    @FXML private DatePicker scheduleDatePicker;
-    @FXML private TextField scheduleTimeField;
-    @FXML private ComboBox<String> scheduleGroupComboBox;
-    @FXML private Button addScheduleGlobalButton;
-    @FXML private VBox addScheduleCard;
     @FXML private ListView<Group> groupsListView;
     @FXML private Button enterGroupButton;
     @FXML private Button deleteGroupButton;
@@ -41,13 +35,15 @@ public class ModernController {
 
     private ObservableList<Group> groups;
     private GroupService groupService;
+    private StudentService studentService;
 
     @FXML
     protected void initialize() {
-        // Inicjalizacja listy grup i serwisu
+        // Inicjalizacja listy grup i serwisów
         groups = FXCollections.observableArrayList();
         groupsListView.setItems(groups);
         groupService = new GroupService();
+        studentService = new StudentService();
 
         // Konfiguracja ListView
         groupsListView.setCellFactory(listView -> new GroupListCell());
@@ -66,8 +62,6 @@ public class ModernController {
         updateGroupCount();
         checkServerConnection();
         setupStudentIndexValidation();
-        updateGroupComboBox();
-        setupTimeFieldValidation();
     }
 
     @FXML
@@ -87,26 +81,56 @@ public class ModernController {
             return;
         }
 
-        // Dodanie grupy
+        // Utworzenie grupy
         Group newGroup = new Group(groupName, specialization);
-        groups.add(newGroup);
 
-        // Animacja dodania
-        animateButton(addGroupButton);
+        // Wyłączenie przycisku podczas wysyłania
+        addGroupButton.setDisable(true);
+        addGroupButton.setText("Dodawanie...");
 
-        // Czyszczenie pól
-        groupNameField.clear();
-        specializationField.clear();
+        // WYSŁANIE NA SERWER
+        groupService.addGroupAsync(newGroup)
+                .thenAccept(savedGroup -> {
+                    // Sukces - dodaj do lokalnej listy
+                    javafx.application.Platform.runLater(() -> {
+                        addGroupButton.setDisable(false);
+                        addGroupButton.setText("Dodaj grupę");
 
-        updateGroupCount();
+                        groups.add(newGroup);
+                        animateButton(addGroupButton);
 
-        showAlert("Sukces", "Grupa '" + groupName + "' została dodana pomyślnie!", Alert.AlertType.INFORMATION);
+                        // Czyszczenie pól
+                        groupNameField.clear();
+                        specializationField.clear();
 
-        // Aktualizuj ComboBox z grupami
-        updateGroupComboBox();
+                        updateGroupCount();
 
-        // Opcjonalnie: wyślij też na serwer
-        // sendGroupToServer(newGroup);
+                        showAlert("Sukces", "Grupa '" + groupName + "' została dodana na serwer!", Alert.AlertType.INFORMATION);
+                    });
+                })
+                .exceptionally(throwable -> {
+                    // Błąd - dodaj lokalnie ale pokaż ostrzeżenie
+                    javafx.application.Platform.runLater(() -> {
+                        addGroupButton.setDisable(false);
+                        addGroupButton.setText("Dodaj grupę");
+
+                        // Dodaj lokalnie mimo błędu serwera
+                        groups.add(newGroup);
+                        animateButton(addGroupButton);
+
+                        // Czyszczenie pól
+                        groupNameField.clear();
+                        specializationField.clear();
+
+                        updateGroupCount();
+
+                        showAlert("Ostrzeżenie",
+                                "Grupa '" + groupName + "' została dodana lokalnie, ale nie udało się wysłać na serwer:\n" +
+                                        throwable.getMessage(),
+                                Alert.AlertType.WARNING);
+                    });
+                    return null;
+                });
     }
 
     @FXML
@@ -139,15 +163,49 @@ public class ModernController {
 
             Optional<ButtonType> result = confirmAlert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
-                groups.remove(selectedGroup);
-                animateButton(deleteGroupButton);
-                updateGroupCount();
 
-                showAlert("Usunięto", "Grupa '" + selectedGroup.getName() + "' została usunięta.",
-                        Alert.AlertType.INFORMATION);
+                // Wyłącz przycisk podczas usuwania
+                deleteGroupButton.setDisable(true);
+                deleteGroupButton.setText("Usuwanie...");
 
-                // Aktualizuj ComboBox z grupami
-                updateGroupComboBox();
+                // WYSŁANIE ŻĄDANIA USUNIĘCIA NA SERWER
+                groupService.deleteGroupAsync(selectedGroup.getName()) // używamy nazwy jako ID
+                        .thenAccept(success -> {
+                            javafx.application.Platform.runLater(() -> {
+                                deleteGroupButton.setDisable(false);
+                                deleteGroupButton.setText("Usuń grupę");
+
+                                if (success) {
+                                    // Sukces - usuń lokalnie
+                                    groups.remove(selectedGroup);
+                                    animateButton(deleteGroupButton);
+                                    updateGroupCount();
+
+                                    showAlert("Usunięto", "Grupa '" + selectedGroup.getName() +
+                                            "' została usunięta z serwera.", Alert.AlertType.INFORMATION);
+                                } else {
+                                    showAlert("Błąd", "Nie udało się usunąć grupy z serwera.",
+                                            Alert.AlertType.ERROR);
+                                }
+                            });
+                        })
+                        .exceptionally(throwable -> {
+                            javafx.application.Platform.runLater(() -> {
+                                deleteGroupButton.setDisable(false);
+                                deleteGroupButton.setText("Usuń grupę");
+
+                                // Usuń lokalnie mimo błędu serwera + ostrzeżenie
+                                groups.remove(selectedGroup);
+                                animateButton(deleteGroupButton);
+                                updateGroupCount();
+
+                                showAlert("Ostrzeżenie",
+                                        "Grupa '" + selectedGroup.getName() +
+                                                "' została usunięta lokalnie, ale nie udało się usunąć z serwera:\n" +
+                                                throwable.getMessage(), Alert.AlertType.WARNING);
+                            });
+                            return null;
+                        });
             }
         }
     }
@@ -159,11 +217,9 @@ public class ModernController {
 
     @FXML
     protected void onAddStudentGlobalClick() {
-        // TODO: Implementacja dodawania studenta do globalnej bazy
         String firstName = studentFirstNameField.getText().trim();
         String lastName = studentLastNameField.getText().trim();
         String indexNumber = studentIndexField.getText().trim();
-        String selectedGroup = groupSelectionComboBox.getValue();
 
         if (firstName.isEmpty() || lastName.isEmpty() || indexNumber.isEmpty()) {
             showAlert("Błąd", "Imię, nazwisko i numer indeksu muszą być wypełnione!", Alert.AlertType.WARNING);
@@ -175,71 +231,42 @@ public class ModernController {
             return;
         }
 
-        // Placeholder - na razie tylko pokaz co zostało wprowadzone
-        String groupInfo = selectedGroup != null ? " do grupy " + selectedGroup : " (bez przypisania do grupy)";
-        showAlert("Informacja",
-                "Student zostanie dodany do bazy:" +
-                        "\nImię: " + firstName +
-                        "\nNazwisko: " + lastName +
-                        "\nNr indeksu: " + indexNumber +
-                        groupInfo +
-                        "\n\n(Logika będzie zaimplementowana później)",
-                Alert.AlertType.INFORMATION);
+        // Utworzenie studenta BEZ GRUPY (null)
+        Student newStudent = new Student(firstName, lastName, indexNumber, null);
 
-        // Wyczyść formularz
-        clearStudentGlobalForm();
-    }
+        // Wyłączenie przycisku podczas wysyłania
+        addStudentGlobalButton.setDisable(true);
+        addStudentGlobalButton.setText("Dodawanie...");
 
-    @FXML
-    protected void onAddScheduleGlobalClick() {
-        // TODO: Implementacja dodawania terminu do globalnej bazy
-        java.time.LocalDate date = scheduleDatePicker.getValue();
-        String timeText = scheduleTimeField.getText().trim();
-        String selectedGroup = scheduleGroupComboBox.getValue();
+        // WYSŁANIE NA SERWER
+        studentService.addStudentAsync(newStudent)
+                .thenAccept(savedStudent -> {
+                    // Sukces
+                    javafx.application.Platform.runLater(() -> {
+                        addStudentGlobalButton.setDisable(false);
+                        addStudentGlobalButton.setText("Dodaj studenta");
 
-        if (date == null || timeText.isEmpty() || selectedGroup == null) {
-            showAlert("Błąd", "Wszystkie pola muszą być wypełnione!", Alert.AlertType.WARNING);
-            return;
-        }
+                        animateButton(addStudentGlobalButton);
+                        clearStudentGlobalForm();
 
-        // Walidacja formatu czasu
-        if (!timeText.matches("\\d{2}:\\d{2}")) {
-            showAlert("Błąd", "Godzina musi być w formacie HH:MM (np. 10:15)!", Alert.AlertType.WARNING);
-            return;
-        }
+                        showAlert("Sukces",
+                                "Student " + newStudent.getFullName() + " został dodany na serwer!" +
+                                        "\n(Przypisanie do grupy możliwe w oknie szczegółów grupy)",
+                                Alert.AlertType.INFORMATION);
+                    });
+                })
+                .exceptionally(throwable -> {
+                    // Błąd
+                    javafx.application.Platform.runLater(() -> {
+                        addStudentGlobalButton.setDisable(false);
+                        addStudentGlobalButton.setText("Dodaj studenta");
 
-        // Sprawdź czy godzina jest prawidłowa
-        String[] timeParts = timeText.split(":");
-        try {
-            int hours = Integer.parseInt(timeParts[0]);
-            int minutes = Integer.parseInt(timeParts[1]);
-
-            if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-                showAlert("Błąd", "Nieprawidłowa godzina! Użyj formatu 00:00 - 23:59", Alert.AlertType.WARNING);
-                return;
-            }
-        } catch (NumberFormatException e) {
-            showAlert("Błąd", "Nieprawidłowy format godziny!", Alert.AlertType.WARNING);
-            return;
-        }
-
-        // Placeholder - na razie tylko pokaz co zostało wprowadzone
-        showAlert("Informacja",
-                "Termin zostanie dodany do bazy:" +
-                        "\nData: " + date.toString() +
-                        "\nGodzina: " + timeText +
-                        "\nGrupa: " + selectedGroup +
-                        "\n\n(Logika będzie zaimplementowana później)",
-                Alert.AlertType.INFORMATION);
-
-        // Wyczyść formularz
-        clearScheduleGlobalForm();
-    }
-
-    private void clearScheduleGlobalForm() {
-        scheduleDatePicker.setValue(null);
-        scheduleTimeField.clear();
-        scheduleGroupComboBox.setValue(null);
+                        showAlert("Błąd serwera",
+                                "Nie udało się dodać studenta na serwer:\n" + throwable.getMessage(),
+                                Alert.AlertType.ERROR);
+                    });
+                    return null;
+                });
     }
 
     /**
@@ -315,27 +342,6 @@ public class ModernController {
     }
 
     /**
-     * Wysyła nową grupę na serwer (opcjonalne)
-     */
-    private void sendGroupToServer(Group group) {
-        groupService.addGroupAsync(group)
-                .thenAccept(savedGroup -> {
-                    javafx.application.Platform.runLater(() -> {
-                        // Możesz zaktualizować grupę z ID z serwera
-                        System.out.println("Grupa zapisana na serwerze: " + savedGroup);
-                    });
-                })
-                .exceptionally(throwable -> {
-                    javafx.application.Platform.runLater(() -> {
-                        showAlert("Ostrzeżenie",
-                                "Grupa dodana lokalnie, ale nie udało się wysłać na serwer:\n" + throwable.getMessage(),
-                                Alert.AlertType.WARNING);
-                    });
-                    return null;
-                });
-    }
-
-    /**
      * Sprawdza połączenie z serwerem
      */
     private void checkServerConnection() {
@@ -357,7 +363,6 @@ public class ModernController {
         studentFirstNameField.clear();
         studentLastNameField.clear();
         studentIndexField.clear();
-        groupSelectionComboBox.setValue(null);
     }
 
     private void setupStudentIndexValidation() {
@@ -374,43 +379,6 @@ public class ModernController {
                 // Ustaw nową wartość tylko jeśli się zmieniła
                 if (!digitsOnly.equals(newValue)) {
                     studentIndexField.setText(digitsOnly);
-                }
-            });
-        }
-    }
-
-    private void updateGroupComboBox() {
-        // Aktualizuj listę grup w ComboBox
-        ObservableList<String> groupNames = FXCollections.observableArrayList();
-        for (Group group : groups) {
-            groupNames.add(group.getName());
-        }
-        groupSelectionComboBox.setItems(groupNames);
-        scheduleGroupComboBox.setItems(groupNames); // Aktualizuj też ComboBox dla terminów
-    }
-
-    private void setupTimeFieldValidation() {
-        // Sprawdź czy pole istnieje (może być null jeśli FXML się nie załadował prawidłowo)
-        if (scheduleTimeField != null) {
-            // Dodaj listener do pola godziny - format HH:MM
-            scheduleTimeField.textProperty().addListener((observable, oldValue, newValue) -> {
-                // Usuń wszystko co nie jest cyfrą ani dwukropkiem
-                String filtered = newValue.replaceAll("[^0-9:]", "");
-
-                // Ogranicz do formatu HH:MM (maksymalnie 5 znaków)
-                if (filtered.length() > 5) {
-                    filtered = filtered.substring(0, 5);
-                }
-
-                // Automatycznie dodaj dwukropek po 2 cyfrach
-                if (filtered.length() == 2 && !filtered.contains(":")) {
-                    filtered = filtered + ":";
-                }
-
-                // Ustaw nową wartość tylko jeśli się zmieniła
-                if (!filtered.equals(newValue)) {
-                    scheduleTimeField.setText(filtered);
-                    scheduleTimeField.positionCaret(filtered.length());
                 }
             });
         }

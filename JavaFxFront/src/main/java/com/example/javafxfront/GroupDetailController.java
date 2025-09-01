@@ -47,15 +47,20 @@ public class GroupDetailController {
     @FXML private Button removeScheduleButton;
     @FXML private Button backButton;
 
+    private GroupService groupService; // DODANE
+    private StudentService studentService; // DODANE
+
     private Group currentGroup;
     private ObservableList<Student> students;
     private ObservableList<ClassSchedule> schedules;
 
     @FXML
     protected void initialize() {
-        // Inicjalizacja list
+        // Inicjalizacja list i serwisów
         students = FXCollections.observableArrayList();
         schedules = FXCollections.observableArrayList();
+        groupService = new GroupService(); // DODANE
+        studentService = new StudentService(); // DODANE
 
         studentsListView.setItems(students);
         scheduleListView.setItems(schedules);
@@ -174,20 +179,20 @@ public class GroupDetailController {
         String indexNumber = indexNumberField.getText().trim();
 
         if (firstName.isEmpty() || lastName.isEmpty() || indexNumber.isEmpty()) {
-            showAlert("Błąd", "Wszystkie pola studenta muszą być wypełnione!", Alert.AlertType.WARNING);
+            showAlert("Blad", "Wszystkie pola studenta musza byc wypelnione!", Alert.AlertType.WARNING);
             return;
         }
 
         // Walidacja numeru indeksu
         if (!indexNumber.matches("\\d{6}")) {
-            showAlert("Błąd", "Numer indeksu musi składać się z dokładnie 6 cyfr!", Alert.AlertType.WARNING);
+            showAlert("Blad", "Numer indeksu musi skladac sie z dokladnie 6 cyfr!", Alert.AlertType.WARNING);
             return;
         }
 
         // Sprawdzenie czy student o takim numerze indeksu już istnieje
         boolean indexExists = students.stream().anyMatch(s -> s.getIndexNumber().equals(indexNumber));
         if (indexExists) {
-            showAlert("Błąd", "Student o takim numerze indeksu już istnieje!", Alert.AlertType.WARNING);
+            showAlert("Blad", "Student o takim numerze indeksu juz istnieje!", Alert.AlertType.WARNING);
             return;
         }
 
@@ -201,7 +206,7 @@ public class GroupDetailController {
         updateCounts();
 
         showAlert("Sukces", "Student " + newStudent.getFullName() +
-                        " został dodany do grupy " + currentGroup.getName() + "!",
+                        " zostal dodany do grupy " + currentGroup.getName() + "!",
                 Alert.AlertType.INFORMATION);
     }
 
@@ -212,19 +217,19 @@ public class GroupDetailController {
         String startTimeText = terminStartTimeField.getText().trim();
         String endTimeText = terminEndTimeField.getText().trim();
 
-        // Walidacja wymaganych pól
+        // Walidacja wymaganych pol
         if (terminName.isEmpty()) {
-            showAlert("Błąd", "Nazwa terminu musi być wypełniona!", Alert.AlertType.WARNING);
+            showAlert("Blad", "Nazwa terminu musi byc wypelniona!", Alert.AlertType.WARNING);
             return;
         }
 
         if (date == null) {
-            showAlert("Błąd", "Data musi być wybrana!", Alert.AlertType.WARNING);
+            showAlert("Blad", "Data musi byc wybrana!", Alert.AlertType.WARNING);
             return;
         }
 
         if (startTimeText.isEmpty()) {
-            showAlert("Błąd", "Godzina rozpoczęcia musi być wypełniona!", Alert.AlertType.WARNING);
+            showAlert("Blad", "Godzina rozpoczecia musi byc wypelniona!", Alert.AlertType.WARNING);
             return;
         }
 
@@ -233,7 +238,7 @@ public class GroupDetailController {
         try {
             startTime = parseTime(startTimeText);
         } catch (Exception e) {
-            showAlert("Błąd", "Nieprawidłowa godzina rozpoczęcia! Użyj formatu HH:MM (np. 10:15)", Alert.AlertType.WARNING);
+            showAlert("Blad", "Nieprawidlowa godzina rozpoczecia! Uzyj formatu HH:MM (np. 10:15)", Alert.AlertType.WARNING);
             return;
         }
 
@@ -247,11 +252,11 @@ public class GroupDetailController {
                 endTime = parseTime(endTimeText);
                 // Sprawdź czy czas zakończenia jest po czasie rozpoczęcia
                 if (!endTime.isAfter(startTime)) {
-                    showAlert("Błąd", "Czas zakończenia musi być później niż czas rozpoczęcia!", Alert.AlertType.WARNING);
+                    showAlert("Blad", "Czas zakonczenia musi byc pozniej niz czas rozpoczecia!", Alert.AlertType.WARNING);
                     return;
                 }
             } catch (Exception e) {
-                showAlert("Błąd", "Nieprawidłowa godzina zakończenia! Użyj formatu HH:MM (np. 12:00)", Alert.AlertType.WARNING);
+                showAlert("Blad", "Nieprawidlowa godzina zakonczenia! Uzyj formatu HH:MM (np. 12:00)", Alert.AlertType.WARNING);
                 return;
             }
         }
@@ -277,7 +282,7 @@ public class GroupDetailController {
         clearTerminForm();
         updateCounts();
 
-        showAlert("Sukces", "Termin '" + terminName + "' został dodany do grupy " + currentGroup.getName() + "!",
+        showAlert("Sukces", "Termin '" + terminName + "' zostal dodany do grupy " + currentGroup.getName() + "!",
                 Alert.AlertType.INFORMATION);
     }
 
@@ -335,7 +340,7 @@ public class GroupDetailController {
             newStage.show();
 
         } catch (Exception e) {
-            showAlert("Błąd", "Nie udało się otworzyć szczegółów terminu: " + e.getMessage(), Alert.AlertType.ERROR);
+            showAlert("Blad", "Nie udalo sie otworzyc szczegolow terminu: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
@@ -367,12 +372,53 @@ public class GroupDetailController {
 
             Optional<ButtonType> result = confirmAlert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
-                students.remove(selectedStudent);
-                animateButton(removeStudentButton);
-                updateCounts();
 
-                showAlert("Usunięto", "Student " + selectedStudent.getFullName() + " został usunięty.",
-                        Alert.AlertType.INFORMATION);
+                // Wyłącz przycisk podczas usuwania
+                removeStudentButton.setDisable(true);
+                removeStudentButton.setText("Usuwanie...");
+
+                // WYSŁANIE ŻĄDANIA USUNIĘCIA NA SERWER
+                studentService.deleteStudentAsync(selectedStudent.getIndexNumber()) // używamy numeru indeksu jako ID
+                        .thenAccept(success -> {
+                            javafx.application.Platform.runLater(() -> {
+                                removeStudentButton.setText("Usuń studenta");
+
+                                if (success) {
+                                    // Sukces - usuń lokalnie
+                                    students.remove(selectedStudent);
+                                    animateButton(removeStudentButton);
+                                    updateCounts();
+
+                                    showAlert("Usunieto", "Student " + selectedStudent.getFullName() +
+                                            " zostal usuniety z serwera.", Alert.AlertType.INFORMATION);
+                                } else {
+                                    showAlert("Blad", "Nie udalo sie usunac studenta z serwera.",
+                                            Alert.AlertType.ERROR);
+                                }
+
+                                // Przywróć stan przycisku (sprawdzi czy coś jest zaznaczone)
+                                removeStudentButton.setDisable(studentsListView.getSelectionModel().getSelectedItem() == null);
+                            });
+                        })
+                        .exceptionally(throwable -> {
+                            javafx.application.Platform.runLater(() -> {
+                                removeStudentButton.setText("Usuń studenta");
+
+                                // Usuń lokalnie mimo błędu serwera + ostrzeżenie
+                                students.remove(selectedStudent);
+                                animateButton(removeStudentButton);
+                                updateCounts();
+
+                                showAlert("Ostrzezenie",
+                                        "Student " + selectedStudent.getFullName() +
+                                                " zostal usuniety lokalnie, ale nie udalo sie usunac z serwera:\n" +
+                                                throwable.getMessage(), Alert.AlertType.WARNING);
+
+                                // Przywróć stan przycisku
+                                removeStudentButton.setDisable(studentsListView.getSelectionModel().getSelectedItem() == null);
+                            });
+                            return null;
+                        });
             }
         }
     }
@@ -395,7 +441,7 @@ public class GroupDetailController {
                 animateButton(removeScheduleButton);
                 updateCounts();
 
-                showAlert("Usunięto", "Termin '" + selectedSchedule.getSubject() + "' został usunięty.",
+                showAlert("Usunieto", "Termin '" + selectedSchedule.getSubject() + "' zostal usuniety.",
                         Alert.AlertType.INFORMATION);
             }
         }

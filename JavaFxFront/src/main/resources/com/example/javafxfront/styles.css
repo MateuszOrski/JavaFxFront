@@ -502,8 +502,19 @@
     -fx-font-size: 12px;
 }
 
-/* Alert dialogs */
-.alert-dialog {
+/* Informacyjna notatka */
+.info-note {
+    -fx-text-fill: -fx-dark-gray;
+    -fx-font-size: 10px;
+    -fx-font-style: italic;
+    -fx-text-alignment: CENTER;
+    -fx-background-color: rgba(220, 20, 60, 0.05);
+    -fx-background-radius: 5;
+    -fx-padding: 8;
+    -fx-border-color: rgba(220, 20, 60, 0.2);
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+}
     -fx-background-color: -fx-white;
 }
 
