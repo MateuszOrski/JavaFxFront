@@ -50,6 +50,7 @@ public class GroupDetailController {
     private GroupService groupService;
     private StudentService studentService;
     private ScheduleService scheduleService;
+    private AttendanceService attendanceService; // DODANE
 
     private Group currentGroup;
     private ObservableList<Student> students;
@@ -62,6 +63,7 @@ public class GroupDetailController {
         groupService = new GroupService();
         studentService = new StudentService();
         scheduleService = new ScheduleService();
+        attendanceService = new AttendanceService(); // DODANE
 
         studentsListView.setItems(students);
         scheduleListView.setItems(schedules);
@@ -77,7 +79,7 @@ public class GroupDetailController {
             removeScheduleButton.setDisable(newSelection == null);
         });
 
-        // ZMIENIONE - Pojedyncze kliknięcie dla szczegółów terminu
+        // Pojedyncze kliknięcie dla szczegółów terminu
         scheduleListView.setOnMouseClicked(event -> {
             ClassSchedule selectedSchedule = scheduleListView.getSelectionModel().getSelectedItem();
             if (selectedSchedule != null && event.getClickCount() == 1) {
@@ -185,6 +187,12 @@ public class GroupDetailController {
                     javafx.application.Platform.runLater(() -> {
                         schedules.clear();
                         schedules.addAll(serverSchedules);
+
+                        // DODANE - Załaduj obecności dla każdego terminu
+                        for (ClassSchedule schedule : serverSchedules) {
+                            loadAttendanceFromServerSilent(schedule);
+                        }
+
                         updateCounts();
                     });
                 })
@@ -196,6 +204,56 @@ public class GroupDetailController {
                     });
                     return null;
                 });
+    }
+
+    // DODANE - Metoda do cichego ładowania obecności (bez alertów)
+    private void loadAttendanceFromServerSilent(ClassSchedule schedule) {
+        if (schedule.getId() != null) {
+            attendanceService.getAttendancesByScheduleAsync(schedule.getId())
+                    .thenAccept(serverAttendances -> {
+                        javafx.application.Platform.runLater(() -> {
+                            schedule.getAttendances().clear();
+                            schedule.getAttendances().addAll(serverAttendances);
+                            refreshSchedulesList();
+                        });
+                    })
+                    .exceptionally(throwable -> {
+                        // Cicha obsługa błędów - tylko log do konsoli
+                        System.err.println("Nie udało się załadować obecności z serwera dla terminu " +
+                                schedule.getSubject() + ": " + throwable.getMessage());
+                        return null;
+                    });
+        }
+    }
+
+    // DODANE - Metoda do ładowania obecności z alertami
+    private void loadAttendanceFromServer(ClassSchedule schedule) {
+        if (schedule.getId() != null) {
+            attendanceService.getAttendancesByScheduleAsync(schedule.getId())
+                    .thenAccept(serverAttendances -> {
+                        javafx.application.Platform.runLater(() -> {
+                            schedule.getAttendances().clear();
+                            schedule.getAttendances().addAll(serverAttendances);
+                            refreshSchedulesList();
+
+                            showAlert("Sukces",
+                                    "Załadowano " + serverAttendances.size() + " wpisów obecności z serwera",
+                                    Alert.AlertType.INFORMATION);
+                        });
+                    })
+                    .exceptionally(throwable -> {
+                        javafx.application.Platform.runLater(() -> {
+                            showAlert("Błąd",
+                                    "Nie udało się załadować obecności z serwera:\n" + throwable.getMessage(),
+                                    Alert.AlertType.ERROR);
+                        });
+                        return null;
+                    });
+        } else {
+            showAlert("Info",
+                    "Ten termin nie ma ID z serwera - obecności są tylko lokalne.",
+                    Alert.AlertType.INFORMATION);
+        }
     }
 
     @FXML
@@ -359,13 +417,13 @@ public class GroupDetailController {
         return LocalTime.of(hours, minutes);
     }
 
-    // NOWA METODA - Otwórz okno szczegółów terminu z zarządzaniem obecnością
+    // Otwórz okno szczegółów terminu z zarządzaniem obecnością
     private void openScheduleDetailWindow(ClassSchedule schedule) {
         try {
             Stage newStage = new Stage();
             newStage.setTitle("Zarządzanie terminem - " + schedule.getSubject());
-            newStage.setWidth(800);
-            newStage.setHeight(600);
+            newStage.setWidth(900);
+            newStage.setHeight(700);
 
             VBox root = new VBox(20);
             root.setStyle("-fx-background-color: white; -fx-padding: 20;");
@@ -380,6 +438,7 @@ public class GroupDetailController {
                     createInfoLabel("Nazwa: " + schedule.getSubject()),
                     createInfoLabel("Data: " + schedule.getFormattedStartTime()),
                     createInfoLabel("Grupa: " + schedule.getGroupName()),
+                    createInfoLabel("Źródło: " + (schedule.isFromServer() ? "Serwer (ID: " + schedule.getId() + ")" : "Lokalny")),
                     createInfoLabel("Frekwencja: " + schedule.getAttendanceSummary())
             );
 
@@ -395,20 +454,35 @@ public class GroupDetailController {
 
             ScrollPane scrollPane = new ScrollPane(studentsBox);
             scrollPane.setFitToWidth(true);
-            scrollPane.setPrefHeight(300);
+            scrollPane.setPrefHeight(350);
             scrollPane.setStyle("-fx-background-color: transparent;");
 
             // Przyciski akcji
             HBox buttonsBox = new HBox(15);
+
             Button closeButton = new Button("Zamknij");
             closeButton.setOnAction(e -> newStage.close());
             closeButton.setStyle("-fx-background-color: #6C757D; -fx-text-fill: white; -fx-padding: 10 20; -fx-background-radius: 20;");
 
             Button clearAllButton = new Button("Wyczyść wszystko");
-            clearAllButton.setOnAction(e -> clearAllAttendances(schedule, studentsBox, newStage));
+            clearAllButton.setOnAction(e -> clearAllAttendances(schedule, newStage));
             clearAllButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-padding: 10 20; -fx-background-radius: 20;");
 
-            buttonsBox.getChildren().addAll(clearAllButton, closeButton);
+            // DODANE - Przycisk ładowania obecności z serwera
+            Button loadServerAttendanceButton = new Button("Załaduj z serwera");
+            loadServerAttendanceButton.setOnAction(e -> {
+                loadAttendanceFromServer(schedule);
+                // Odśwież okno po załadowaniu
+                newStage.close();
+                javafx.application.Platform.runLater(() -> openScheduleDetailWindow(schedule));
+            });
+            loadServerAttendanceButton.setStyle("-fx-background-color: #38A169; -fx-text-fill: white; -fx-padding: 10 20; -fx-background-radius: 20;");
+
+            if (schedule.isFromServer()) {
+                buttonsBox.getChildren().addAll(loadServerAttendanceButton, clearAllButton, closeButton);
+            } else {
+                buttonsBox.getChildren().addAll(clearAllButton, closeButton);
+            }
 
             root.getChildren().addAll(titleLabel, infoBox, studentsLabel, scrollPane, buttonsBox);
 
@@ -461,7 +535,7 @@ public class GroupDetailController {
         presentButton.setStyle("-fx-background-color: #38A169; -fx-text-fill: white; -fx-padding: 5 10; -fx-background-radius: 15; -fx-font-size: 11px;");
         presentButton.setOnAction(e -> {
             markAttendance(student, schedule, Attendance.Status.PRESENT, statusLabel);
-            refreshSchedulesList(); // Odśwież listę terminów aby pokazać aktualne statystyki
+            refreshSchedulesList();
         });
 
         Button lateButton = new Button("Spóźniony");
@@ -495,36 +569,103 @@ public class GroupDetailController {
         return row;
     }
 
+    // ZAKTUALIZOWANE - Metoda markAttendance z wysyłaniem na serwer
     private void markAttendance(Student student, ClassSchedule schedule, Attendance.Status status, Label statusLabel) {
         Attendance attendance = new Attendance(student, schedule, status);
+
+        // Dodaj lokalnie (natychmiastowa reakcja UI)
         schedule.addAttendance(attendance);
 
-        // Zaktualizuj label statusu
+        // Zaktualizuj label statusu natychmiast
         statusLabel.setText(status.getDisplayName());
         statusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: " + status.getColor() + ";");
+
+        // DODANE - Wyślij na serwer asynchronicznie
+        if (schedule.getId() != null) { // Tylko jeśli termin ma ID z serwera
+            attendanceService.markStudentAttendanceAsync(student, schedule.getId(), status, "")
+                    .thenAccept(success -> {
+                        javafx.application.Platform.runLater(() -> {
+                            if (success) {
+                                System.out.println("✅ Obecność wysłana na serwer: " + student.getFullName() + " - " + status.getDisplayName());
+                            } else {
+                                System.out.println("⚠️ Ostrzeżenie: Nie udało się wysłać obecności na serwer");
+                            }
+                        });
+                    })
+                    .exceptionally(throwable -> {
+                        javafx.application.Platform.runLater(() -> {
+                            System.err.println("❌ Błąd wysyłania obecności na serwer: " + throwable.getMessage());
+                            // Możesz tu dodać bardziej zaawansowaną obsługę błędów
+                        });
+                        return null;
+                    });
+        } else {
+            System.out.println("ℹ️ Termin lokalny - obecność zapisana tylko lokalnie");
+        }
 
         showAlert("Sukces", "Oznaczono " + student.getFullName() + " jako " + status.getDisplayName().toLowerCase(),
                 Alert.AlertType.INFORMATION);
     }
 
+    // ZAKTUALIZOWANE - Metoda clearAttendance z usuwaniem z serwera
     private void clearAttendance(Student student, ClassSchedule schedule, Label statusLabel) {
+        // Usuń lokalnie (natychmiastowa reakcja UI)
         schedule.removeAttendance(student);
 
-        // Zaktualizuj label statusu
+        // Zaktualizuj label statusu natychmiast
         statusLabel.setText("Nie zaznaczono");
         statusLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #6C757D;");
+
+        // DODANE - Usuń z serwera asynchronicznie
+        if (schedule.getId() != null) { // Tylko jeśli termin ma ID z serwera
+            attendanceService.removeAttendanceAsync(student.getIndexNumber(), schedule.getId())
+                    .thenAccept(success -> {
+                        javafx.application.Platform.runLater(() -> {
+                            if (success) {
+                                System.out.println("✅ Obecność usunięta z serwera: " + student.getFullName());
+                            } else {
+                                System.out.println("⚠️ Ostrzeżenie: Nie udało się usunąć obecności z serwera");
+                            }
+                        });
+                    })
+                    .exceptionally(throwable -> {
+                        javafx.application.Platform.runLater(() -> {
+                            System.err.println("❌ Błąd usuwania obecności z serwera: " + throwable.getMessage());
+                        });
+                        return null;
+                    });
+        } else {
+            System.out.println("ℹ️ Termin lokalny - obecność usunięta tylko lokalnie");
+        }
 
         showAlert("Info", "Usunięto oznaczenie dla " + student.getFullName(), Alert.AlertType.INFORMATION);
     }
 
-    private void clearAllAttendances(ClassSchedule schedule, VBox studentsBox, Stage stage) {
+    private void clearAllAttendances(ClassSchedule schedule, Stage stage) {
         Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
         confirmAlert.setTitle("Potwierdzenie");
         confirmAlert.setHeaderText("Czy na pewno chcesz wyczyścić wszystkie oznaczenia obecności?");
-        confirmAlert.setContentText("Ta operacja usunie wszystkie wpisy frekwencji dla tego terminu.");
+        confirmAlert.setContentText("Ta operacja usunie wszystkie wpisy frekwencji dla tego terminu" +
+                (schedule.isFromServer() ? " (także z serwera)" : " (lokalnie)") + ".");
 
         Optional<ButtonType> result = confirmAlert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
+
+            // DODANE - Usuń wszystkie z serwera jeśli to termin serwerowy
+            if (schedule.isFromServer() && schedule.getId() != null) {
+                // Usuń każdą obecność z serwera
+                for (Attendance attendance : schedule.getAttendances()) {
+                    attendanceService.removeAttendanceAsync(
+                            attendance.getStudent().getIndexNumber(),
+                            schedule.getId()
+                    ).exceptionally(throwable -> {
+                        System.err.println("Błąd usuwania obecności z serwera: " + throwable.getMessage());
+                        return null;
+                    });
+                }
+            }
+
+            // Usuń lokalnie
             schedule.getAttendances().clear();
 
             // Odśwież widok
@@ -557,9 +698,22 @@ public class GroupDetailController {
                             javafx.application.Platform.runLater(() -> {
                                 students.remove(selectedStudent);
 
-                                // DODANE - Usuń studenta ze wszystkich terminów
+                                // DODANE - Usuń studenta ze wszystkich terminów (lokalnie i z serwera)
                                 for (ClassSchedule schedule : schedules) {
-                                    schedule.removeAttendance(selectedStudent);
+                                    if (schedule.hasAttendanceForStudent(selectedStudent)) {
+                                        // Usuń z serwera jeśli termin ma ID
+                                        if (schedule.getId() != null) {
+                                            attendanceService.removeAttendanceAsync(
+                                                    selectedStudent.getIndexNumber(),
+                                                    schedule.getId()
+                                            ).exceptionally(throwable -> {
+                                                System.err.println("Błąd usuwania obecności studenta z serwera: " + throwable.getMessage());
+                                                return null;
+                                            });
+                                        }
+                                        // Usuń lokalnie
+                                        schedule.removeAttendance(selectedStudent);
+                                    }
                                 }
                                 refreshSchedulesList();
 
@@ -571,7 +725,7 @@ public class GroupDetailController {
                             javafx.application.Platform.runLater(() -> {
                                 students.remove(selectedStudent);
 
-                                // Usuń studenta ze wszystkich terminów
+                                // Usuń studenta ze wszystkich terminów (tylko lokalnie)
                                 for (ClassSchedule schedule : schedules) {
                                     schedule.removeAttendance(selectedStudent);
                                 }
@@ -596,7 +750,8 @@ public class GroupDetailController {
             confirmAlert.setContentText("Termin: " + selectedSchedule.getSubject() +
                     "\nData: " + selectedSchedule.getFormattedStartTime() +
                     "\nFrekwencja: " + selectedSchedule.getAttendanceSummary() +
-                    "\n\nUWAGA: Wszystkie wpisy frekwencji zostaną utracone!");
+                    "\n\nUWAGA: Wszystkie wpisy frekwencji zostaną utracone!" +
+                    (selectedSchedule.isFromServer() ? "\n(Usunięcie także z serwera)" : "\n(Usunięcie lokalne)"));
 
             Optional<ButtonType> result = confirmAlert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
@@ -700,7 +855,7 @@ public class GroupDetailController {
         alert.showAndWait();
     }
 
-    // ZAKTUALIZOWANE - Klasa StudentListCell
+    // Klasa StudentListCell
     private class StudentListCell extends ListCell<Student> {
         @Override
         protected void updateItem(Student student, boolean empty) {
@@ -728,7 +883,7 @@ public class GroupDetailController {
         }
     }
 
-    // ZAKTUALIZOWANE - Klasa ScheduleListCell z informacjami o frekwencji
+    // Klasa ScheduleListCell z informacjami o frekwencji i statusie serwera
     private class ScheduleListCell extends ListCell<ClassSchedule> {
         @Override
         protected void updateItem(ClassSchedule schedule, boolean empty) {
@@ -746,28 +901,35 @@ public class GroupDetailController {
                 Label dateTimeLabel = new Label("Data: " + schedule.getFormattedStartTime() + " - " + schedule.getFormattedEndTime());
                 dateTimeLabel.getStyleClass().add("schedule-datetime");
 
-                Label sourceLabel = new Label("Źródło: " + (schedule.isFromServer() ? "Serwer" : "Lokalny"));
-                sourceLabel.setStyle("-fx-text-fill: " + (schedule.isFromServer() ? "#38A169;" : "#E53E3E;"));
-
-                // DODANE - Wyświetlanie statystyk frekwencji
-                Label attendanceLabel = new Label(schedule.getAttendanceSummary());
-                if (schedule.getTotalAttendanceCount() > 0) {
-                    attendanceLabel.setStyle("-fx-text-fill: #212529; -fx-font-weight: bold;");
+                // ZAKTUALIZOWANE - Lepszy status źródła
+                Label sourceLabel = new Label();
+                if (schedule.isFromServer()) {
+                    sourceLabel.setText("🔵 Serwer (ID: " + schedule.getId() + ")");
+                    sourceLabel.setStyle("-fx-text-fill: #38A169; -fx-font-size: 11px; -fx-font-weight: bold;");
                 } else {
-                    attendanceLabel.setStyle("-fx-text-fill: #6C757D; -fx-font-style: italic;");
+                    sourceLabel.setText("🔴 Lokalny");
+                    sourceLabel.setStyle("-fx-text-fill: #E53E3E; -fx-font-size: 11px; -fx-font-weight: bold;");
                 }
 
-                // DODANE - Szczegółowe liczniki w kolorach
+                // Wyświetlanie statystyk frekwencji
+                Label attendanceLabel = new Label(schedule.getAttendanceSummary());
+                if (schedule.getTotalAttendanceCount() > 0) {
+                    attendanceLabel.setStyle("-fx-text-fill: #212529; -fx-font-weight: bold; -fx-font-size: 12px;");
+                } else {
+                    attendanceLabel.setStyle("-fx-text-fill: #6C757D; -fx-font-style: italic; -fx-font-size: 12px;");
+                }
+
+                // Szczegółowe liczniki w kolorach
                 if (schedule.getTotalAttendanceCount() > 0) {
                     HBox statsBox = new HBox(10);
 
-                    Label presentLabel = new Label("Obecni: " + schedule.getPresentCount());
+                    Label presentLabel = new Label("✅ " + schedule.getPresentCount());
                     presentLabel.setStyle("-fx-text-fill: #38A169; -fx-font-size: 11px; -fx-font-weight: bold;");
 
-                    Label lateLabel = new Label("Spóźnieni: " + schedule.getLateCount());
+                    Label lateLabel = new Label("⏰ " + schedule.getLateCount());
                     lateLabel.setStyle("-fx-text-fill: #F56500; -fx-font-size: 11px; -fx-font-weight: bold;");
 
-                    Label absentLabel = new Label("Nieobecni: " + schedule.getAbsentCount());
+                    Label absentLabel = new Label("❌ " + schedule.getAbsentCount());
                     absentLabel.setStyle("-fx-text-fill: #E53E3E; -fx-font-size: 11px; -fx-font-weight: bold;");
 
                     statsBox.getChildren().addAll(presentLabel, lateLabel, absentLabel);
@@ -776,9 +938,21 @@ public class GroupDetailController {
                     cellContent.getChildren().addAll(subjectLabel, dateTimeLabel, sourceLabel, attendanceLabel);
                 }
 
-                Label clickHintLabel = new Label("Kliknij aby zarządzać frekwencją");
+                // Podpowiedź dla użytkownika
+                Label clickHintLabel = new Label("💡 Kliknij aby zarządzać frekwencją");
                 clickHintLabel.setStyle("-fx-text-fill: #6C757D; -fx-font-size: 10px; -fx-font-style: italic;");
                 cellContent.getChildren().add(clickHintLabel);
+
+                // DODANE - Informacja o synchronizacji z serwerem
+                if (schedule.isFromServer()) {
+                    Label syncLabel = new Label("🔄 Synchronizacja z serwerem dostępna");
+                    syncLabel.setStyle("-fx-text-fill: #38A169; -fx-font-size: 9px; -fx-font-style: italic;");
+                    cellContent.getChildren().add(syncLabel);
+                } else {
+                    Label localLabel = new Label("⚠️ Tylko dane lokalne");
+                    localLabel.setStyle("-fx-text-fill: #E53E3E; -fx-font-size: 9px; -fx-font-style: italic;");
+                    cellContent.getChildren().add(localLabel);
+                }
 
                 setGraphic(cellContent);
                 setText(null);
