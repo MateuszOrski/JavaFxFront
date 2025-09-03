@@ -1,10 +1,17 @@
 package com.example.javafxfront;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -14,16 +21,18 @@ public class StudentService {
     private static final String STUDENTS_ENDPOINT = BASE_URL + "/students";
 
     private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
     public StudentService() {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
+
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    /**
-     * Pobiera wszystkich studentów z serwera
-     */
     public CompletableFuture<List<Student>> getAllStudentsAsync() {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -50,9 +59,6 @@ public class StudentService {
         });
     }
 
-    /**
-     * Pobiera studentów z konkretnej grupy
-     */
     public CompletableFuture<List<Student>> getStudentsByGroupAsync(String groupName) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -81,9 +87,6 @@ public class StudentService {
         });
     }
 
-    /**
-     * Pobiera studentów bez przypisanej grupy
-     */
     public CompletableFuture<List<Student>> getStudentsWithoutGroupAsync() {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -112,9 +115,6 @@ public class StudentService {
         });
     }
 
-    /**
-     * Dodaje studenta na serwer
-     */
     public CompletableFuture<Student> addStudentAsync(Student student) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -133,19 +133,22 @@ public class StudentService {
 
                 if (response.statusCode() == 201 || response.statusCode() == 200) {
                     return parseStudentFromJson(response.body());
+                } else if (response.statusCode() == 409) {
+                    throw new StudentAlreadyExistsException("Student o numerze indeksu " +
+                            student.getIndexNumber() + " już istnieje w systemie!");
                 } else {
-                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
+                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode()
+                            + ". Szczegóły: " + response.body());
                 }
 
+            } catch (StudentAlreadyExistsException e) {
+                throw e;
             } catch (Exception e) {
                 throw new RuntimeException("Nie udalo sie dodac studenta na serwer: " + e.getMessage(), e);
             }
         });
     }
 
-    /**
-     * Usuwa studenta z serwera
-     */
     public CompletableFuture<Boolean> deleteStudentAsync(String studentIndexNumber) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -167,9 +170,6 @@ public class StudentService {
         });
     }
 
-    /**
-     * Aktualizuje studenta na serwerze (np. przypisanie do grupy)
-     */
     public CompletableFuture<Student> updateStudentAsync(String indexNumber, Student student) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -201,67 +201,83 @@ public class StudentService {
     // === METODY PRYWATNE DO PARSOWANIA JSON ===
 
     private List<Student> parseStudentsFromJson(String json) {
-        // TYMCZASOWA IMPLEMENTACJA - DOSTOSUJ DO SWOJEGO FORMATU JSON
-        // Tu dodaj prawdziwe parsowanie JSON używając Jackson, Gson, itp.
+        try {
+            List<StudentFromServer> serverStudents = objectMapper.readValue(json, new TypeReference<List<StudentFromServer>>() {});
 
-        /* Przykładowy format JSON z serwera:
-        [
-            {
-                "id": 1,
-                "firstName": "Jan",
-                "lastName": "Kowalski",
-                "indexNumber": "123456",
-                "groupName": "Grupa INF-A",
-                "addedDate": "2024-01-15T10:30:00"
-            },
-            {
-                "id": 2,
-                "firstName": "Anna",
-                "lastName": "Nowak",
-                "indexNumber": "123457",
-                "groupName": null,
-                "addedDate": "2024-01-16T14:20:00"
-            }
-        ]
-        */
+            return serverStudents.stream()
+                    .map(this::convertToStudent)
+                    .toList();
 
-        java.util.List<Student> students = new java.util.ArrayList<>();
-
-        // Tutaj dodaj kod parsujący JSON z Twojego serwera
-        // Na przykład używając Jackson ObjectMapper:
-        // ObjectMapper mapper = new ObjectMapper();
-        // mapper.registerModule(new JavaTimeModule());
-        // return mapper.readValue(json, new TypeReference<List<Student>>(){});
-
-        return students;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse students JSON: " + e.getMessage(), e);
+        }
     }
 
     private Student parseStudentFromJson(String json) {
-        // TYMCZASOWA IMPLEMENTACJA - DOSTOSUJ DO SWOJEGO FORMATU
-        // Parsuj pojedynczego studenta z JSON response
-
-        // Tu możesz zwrócić null lub rzucić wyjątek - dostosuj do potrzeb
-        return null; // Zamień na prawdziwe parsowanie
+        try {
+            StudentFromServer serverStudent = objectMapper.readValue(json, StudentFromServer.class);
+            return convertToStudent(serverStudent);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse student JSON: " + e.getMessage(), e);
+        }
     }
 
     private String studentToJson(Student student) {
-        return String.format(
-                "{\"firstName\":\"%s\",\"lastName\":\"%s\",\"indexNumber\":\"%s\",\"groupName\":\"%s\"}",
-                escapeJson(student.getFirstName()),
-                escapeJson(student.getLastName()),
-                escapeJson(student.getIndexNumber()),
-                student.getGroupName() != null ? escapeJson(student.getGroupName()) : ""
-        );
+        try {
+            StudentToServer studentToServer = new StudentToServer();
+            studentToServer.firstName = student.getFirstName();
+            studentToServer.lastName = student.getLastName();
+            studentToServer.indexNumber = student.getIndexNumber();
+            studentToServer.groupName = student.getGroupName();
+
+            return objectMapper.writeValueAsString(studentToServer);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to convert student to JSON: " + e.getMessage(), e);
+        }
     }
 
-    /**
-     * Pomocnicza metoda do escape'owania stringów w JSON
-     */
-    private String escapeJson(String str) {
-        if (str == null) return "";
-        return str.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
+    private Student convertToStudent(StudentFromServer serverStudent) {
+        String groupName = null;
+        if (serverStudent.group != null) {
+            groupName = serverStudent.group.name;
+        }
+
+        Student student = new Student(serverStudent.firstName, serverStudent.lastName,
+                serverStudent.indexNumber, groupName);
+        return student;
+    }
+
+    // === KLASY POMOCNICZE - BEZ EMAIL ===
+
+    private static class StudentFromServer {
+        public Long id;
+        public String firstName;
+        public String lastName;
+        public String indexNumber;
+        // USUNIĘTE POLE EMAIL
+        public String fullName;
+        public LocalDateTime createdDate;
+        public Boolean active;
+        public GroupInfo group;
+    }
+
+    private static class GroupInfo {
+        public Long id;
+        public String name;
+        public String specialization;
+    }
+
+    private static class StudentToServer {
+        public String firstName;
+        public String lastName;
+        public String indexNumber;
+        public String groupName;
+        // BEZ POLA EMAIL
+    }
+
+    public static class StudentAlreadyExistsException extends RuntimeException {
+        public StudentAlreadyExistsException(String message) {
+            super(message);
+        }
     }
 }

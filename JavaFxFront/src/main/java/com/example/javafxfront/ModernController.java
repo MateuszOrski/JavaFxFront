@@ -79,10 +79,10 @@ public class ModernController {
             return;
         }
 
-        // Sprawdzenie czy grupa o takiej nazwie już istnieje
+        // Sprawdzenie czy grupa o takiej nazwie już istnieje lokalnie
         boolean groupExists = groups.stream().anyMatch(g -> g.getName().equalsIgnoreCase(groupName));
         if (groupExists) {
-            showAlert("Błąd", "Grupa o takiej nazwie już istnieje!", Alert.AlertType.WARNING);
+            showAlert("Błąd", "Grupa o nazwie '" + groupName + "' już istnieje w lokalnej liście!", Alert.AlertType.WARNING);
             return;
         }
 
@@ -114,25 +114,33 @@ public class ModernController {
                     });
                 })
                 .exceptionally(throwable -> {
-                    // Błąd - dodaj lokalnie ale pokaż ostrzeżenie
+                    // Błąd
                     javafx.application.Platform.runLater(() -> {
                         addGroupButton.setDisable(false);
                         addGroupButton.setText("Dodaj grupę");
 
-                        // Dodaj lokalnie mimo błędu serwera
-                        groups.add(newGroup);
-                        animateButton(addGroupButton);
+                        // Sprawdź czy to błąd duplikatu
+                        if (throwable.getCause() instanceof GroupService.GroupAlreadyExistsException) {
+                            showAlert("Grupa już istnieje",
+                                    throwable.getCause().getMessage() +
+                                            "\nSprawdź nazwę grupy i spróbuj ponownie z inną nazwą.",
+                                    Alert.AlertType.WARNING);
+                        } else {
+                            // Dodaj lokalnie mimo błędu serwera
+                            groups.add(newGroup);
+                            animateButton(addGroupButton);
 
-                        // Czyszczenie pól
-                        groupNameField.clear();
-                        specializationField.clear();
+                            // Czyszczenie pól
+                            groupNameField.clear();
+                            specializationField.clear();
 
-                        updateGroupCount();
+                            updateGroupCount();
 
-                        showAlert("Ostrzeżenie",
-                                "Grupa '" + groupName + "' została dodana lokalnie, ale nie udało się wysłać na serwer:\n" +
-                                        throwable.getMessage(),
-                                Alert.AlertType.WARNING);
+                            showAlert("Ostrzeżenie",
+                                    "Grupa '" + groupName + "' została dodana lokalnie, ale nie udało się wysłać na serwer:\n" +
+                                            throwable.getMessage(),
+                                    Alert.AlertType.WARNING);
+                        }
                     });
                     return null;
                 });
@@ -287,9 +295,17 @@ public class ModernController {
                         addStudentGlobalButton.setDisable(false);
                         addStudentGlobalButton.setText("Dodaj studenta");
 
-                        showAlert("Błąd serwera",
-                                "Nie udało się dodać studenta na serwer:\n" + throwable.getMessage(),
-                                Alert.AlertType.ERROR);
+                        // Sprawdź czy to błąd duplikatu indeksu
+                        if (throwable.getCause() instanceof StudentService.StudentAlreadyExistsException) {
+                            showAlert("Student już istnieje",
+                                    throwable.getCause().getMessage() +
+                                            "\nSprawdź numer indeksu i spróbuj ponownie z innym numerem.",
+                                    Alert.AlertType.WARNING);
+                        } else {
+                            showAlert("Błąd serwera",
+                                    "Nie udało się dodać studenta na serwer:\n" + throwable.getMessage(),
+                                    Alert.AlertType.ERROR);
+                        }
                     });
                     return null;
                 });

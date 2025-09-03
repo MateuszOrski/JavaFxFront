@@ -1,10 +1,17 @@
 package com.example.javafxfront;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -15,17 +22,20 @@ public class ScheduleService {
     private static final String SCHEDULES_ENDPOINT = BASE_URL + "/schedules";
 
     private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     public ScheduleService() {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
+
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+        // KLUCZOWE - Ignoruj nieznane właściwości globalnie
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    /**
-     * Pobiera wszystkie terminy z serwera
-     */
     public CompletableFuture<List<ClassSchedule>> getAllSchedulesAsync() {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -52,9 +62,6 @@ public class ScheduleService {
         });
     }
 
-    /**
-     * Pobiera terminy dla konkretnej grupy
-     */
     public CompletableFuture<List<ClassSchedule>> getSchedulesByGroupAsync(String groupName) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -83,9 +90,6 @@ public class ScheduleService {
         });
     }
 
-    /**
-     * Dodaje termin na serwer
-     */
     public CompletableFuture<ClassSchedule> addScheduleAsync(ClassSchedule schedule) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -114,9 +118,6 @@ public class ScheduleService {
         });
     }
 
-    /**
-     * Usuwa termin z serwera
-     */
     public CompletableFuture<Boolean> deleteScheduleAsync(Long scheduleId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -138,9 +139,6 @@ public class ScheduleService {
         });
     }
 
-    /**
-     * Aktualizuje termin na serwerze
-     */
     public CompletableFuture<ClassSchedule> updateScheduleAsync(Long scheduleId, ClassSchedule schedule) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -172,80 +170,89 @@ public class ScheduleService {
     // === METODY PRYWATNE DO PARSOWANIA JSON ===
 
     private List<ClassSchedule> parseSchedulesFromJson(String json) {
-        // TYMCZASOWA IMPLEMENTACJA - DOSTOSUJ DO SWOJEGO FORMATU JSON
-        // Tu dodaj prawdziwe parsowanie JSON używając Jackson, Gson, itp.
+        try {
+            List<ScheduleFromServer> serverSchedules = objectMapper.readValue(json, new TypeReference<List<ScheduleFromServer>>() {});
 
-        /* Przykładowy format JSON z serwera:
-        [
-            {
-                "id": 1,
-                "subject": "Egzamin z Javy",
-                "classroom": "Sala 101",
-                "startTime": "2024-06-15T10:30:00",
-                "endTime": "2024-06-15T12:30:00",
-                "instructor": "Dr Kowalski",
-                "notes": "Przyniesć długopis",
-                "groupName": "Grupa INF-A",
-                "createdDate": "2024-01-15T10:30:00"
-            }
-        ]
-        */
+            return serverSchedules.stream()
+                    .map(this::convertToClassSchedule)
+                    .toList();
 
-        java.util.List<ClassSchedule> schedules = new java.util.ArrayList<>();
-
-        // Tutaj dodaj kod parsujący JSON z Twojego serwera
-        // Na przykład używając Jackson ObjectMapper:
-        // ObjectMapper mapper = new ObjectMapper();
-        // mapper.registerModule(new JavaTimeModule());
-        // return mapper.readValue(json, new TypeReference<List<ClassSchedule>>(){});
-
-        return schedules;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse schedules JSON: " + e.getMessage(), e);
+        }
     }
 
     private ClassSchedule parseScheduleFromJson(String json) {
-        // TYMCZASOWA IMPLEMENTACJA - DOSTOSUJ DO SWOJEGO FORMATU
-        // Parsuj pojedynczy termin z JSON response
-
-        // Tu możesz zwrócić null lub rzucić wyjątek - dostosuj do potrzeb
-        return null; // Zamień na prawdziwe parsowanie
+        try {
+            ScheduleFromServer serverSchedule = objectMapper.readValue(json, ScheduleFromServer.class);
+            return convertToClassSchedule(serverSchedule);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse schedule JSON: " + e.getMessage(), e);
+        }
     }
 
     private String scheduleToJson(ClassSchedule schedule) {
-        // TYMCZASOWA IMPLEMENTACJA - DOSTOSUJ DO SWOJEGO FORMATU
-        // Konwertuj termin do JSON dla wysłania na serwer
+        try {
+            ScheduleToServer scheduleToServer = new ScheduleToServer();
+            scheduleToServer.subject = schedule.getSubject();
+            scheduleToServer.classroom = schedule.getClassroom() != null ? schedule.getClassroom() : "";
+            scheduleToServer.startTime = schedule.getStartTime();
+            scheduleToServer.endTime = schedule.getEndTime();
+            scheduleToServer.instructor = schedule.getInstructor() != null ? schedule.getInstructor() : "";
+            scheduleToServer.notes = schedule.getNotes() != null ? schedule.getNotes() : "";
+            scheduleToServer.groupName = schedule.getGroupName();
 
-        /* Przykładowy format dla serwera:
-        {
-            "subject": "Egzamin z Javy",
-            "classroom": "Sala 101",
-            "startTime": "2024-06-15T10:30:00",
-            "endTime": "2024-06-15T12:30:00",
-            "instructor": "Dr Kowalski",
-            "notes": "Przyniesć długopis",
-            "groupName": "Grupa INF-A"
+            return objectMapper.writeValueAsString(scheduleToServer);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to convert schedule to JSON: " + e.getMessage(), e);
         }
-        */
-
-        return String.format(
-                "{\"subject\":\"%s\",\"classroom\":\"%s\",\"startTime\":\"%s\",\"endTime\":\"%s\",\"instructor\":\"%s\",\"notes\":\"%s\",\"groupName\":\"%s\"}",
-                escapeJson(schedule.getSubject()),
-                escapeJson(schedule.getClassroom()),
-                schedule.getStartTime().format(formatter),
-                schedule.getEndTime().format(formatter),
-                escapeJson(schedule.getInstructor()),
-                escapeJson(schedule.getNotes()),
-                escapeJson(schedule.getGroupName())
-        );
     }
 
-    /**
-     * Pomocnicza metoda do escape'owania stringów w JSON
-     */
-    private String escapeJson(String str) {
-        if (str == null) return "";
-        return str.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
+    private ClassSchedule convertToClassSchedule(ScheduleFromServer serverSchedule) {
+        String groupName = serverSchedule.group != null ? serverSchedule.group.name : "Nieznana grupa";
+
+        ClassSchedule schedule = new ClassSchedule(
+                serverSchedule.id,
+                serverSchedule.subject,
+                serverSchedule.classroom,
+                serverSchedule.startTime,
+                serverSchedule.endTime,
+                serverSchedule.instructor,
+                serverSchedule.notes,
+                groupName,
+                serverSchedule.createdDate
+        );
+
+        return schedule;
+    }
+
+    // === KLASY POMOCNICZE DO SERIALIZACJI - BEZ ADNOTACJI ===
+
+    private static class ScheduleFromServer {
+        public Long id;
+        public String subject;
+        public String classroom;
+        public LocalDateTime startTime;
+        public LocalDateTime endTime;
+        public String instructor;
+        public String notes;
+        public LocalDateTime createdDate;
+        public GroupInfo group;
+    }
+
+    private static class GroupInfo {
+        public Long id;
+        public String name;
+        public String specialization;
+    }
+
+    private static class ScheduleToServer {
+        public String subject;
+        public String classroom;
+        public LocalDateTime startTime;
+        public LocalDateTime endTime;
+        public String instructor;
+        public String notes;
+        public String groupName;
     }
 }

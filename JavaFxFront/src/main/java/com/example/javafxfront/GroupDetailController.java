@@ -283,33 +283,111 @@ public class GroupDetailController {
                     Alert.AlertType.INFORMATION);
         }
     }
+    /**
+     * Przypisuje istniejącego studenta do grupy
+     */
+    private void assignExistingStudentToGroup(String indexNumber) {
+        System.out.println("=== PRZYPISYWANIE ISTNIEJĄCEGO STUDENTA ===");
+        System.out.println("Szukam studenta o indeksie: " + indexNumber);
 
-    @FXML
-    protected void onAddStudentClick() {
-        String firstName = firstNameField.getText().trim();
-        String lastName = lastNameField.getText().trim();
-        String indexNumber = indexNumberField.getText().trim();
+        // Najpierw spróbuj znaleźć studenta na serwerze
+        studentService.getAllStudentsAsync()
+                .thenAccept(allStudents -> {
+                    System.out.println("Otrzymano " + allStudents.size() + " studentów z serwera");
 
-        if (firstName.isEmpty() || lastName.isEmpty() || indexNumber.isEmpty()) {
-            showAlert("Błąd", "Wszystkie pola studenta muszą być wypełnione!", Alert.AlertType.WARNING);
-            return;
-        }
+                    javafx.application.Platform.runLater(() -> {
+                        // Znajdź studenta o podanym indeksie
+                        Student existingStudent = allStudents.stream()
+                                .filter(s -> s.getIndexNumber().equals(indexNumber))
+                                .findFirst()
+                                .orElse(null);
 
-        if (!indexNumber.matches("\\d{6}")) {
-            showAlert("Błąd", "Numer indeksu musi składać się z dokładnie 6 cyfr!", Alert.AlertType.WARNING);
-            return;
-        }
+                        System.out.println("Znaleziony student: " + (existingStudent != null ?
+                                existingStudent.getFullName() + " (grupa: " + existingStudent.getGroupName() + ")" : "BRAK"));
 
-        boolean indexExists = students.stream().anyMatch(s -> s.getIndexNumber().equals(indexNumber));
-        if (indexExists) {
-            showAlert("Błąd", "Student o takim numerze indeksu już istnieje!", Alert.AlertType.WARNING);
-            return;
-        }
+                        if (existingStudent == null) {
+                            addStudentButton.setDisable(false);
+                            addStudentButton.setText("Dodaj studenta");
+                            showAlert("Student nie znaleziony",
+                                    "Nie znaleziono studenta o numerze indeksu " + indexNumber +
+                                            " w systemie.\n\nAby utworzyć nowego studenta, wypełnij także pola: Imię i Nazwisko.",
+                                    Alert.AlertType.WARNING);
+                            return;
+                        }
 
+                        System.out.println("Student istnieje. Aktualna grupa: '" + existingStudent.getGroupName() + "'");
+                        System.out.println("Docelowa grupa: '" + currentGroup.getName() + "'");
+
+                        // Student istnieje - sprawdź czy już ma grupę
+                        if (existingStudent.getGroupName() != null &&
+                                !existingStudent.getGroupName().isEmpty()) {
+
+                            // Sprawdź czy to ta sama grupa
+                            if (existingStudent.getGroupName().equals(currentGroup.getName())) {
+                                addStudentButton.setDisable(false);
+                                addStudentButton.setText("Dodaj studenta");
+                                showAlert("Student już w grupie",
+                                        "Student " + existingStudent.getFullName() +
+                                                " jest już przypisany do tej grupy (" + currentGroup.getName() + ")!",
+                                        Alert.AlertType.INFORMATION);
+                                return;
+                            }
+
+                            addStudentButton.setDisable(false);
+                            addStudentButton.setText("Dodaj studenta");
+
+                            Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+                            confirmAlert.setTitle("Przenieś studenta");
+                            confirmAlert.setHeaderText("Student już ma grupę");
+                            confirmAlert.setContentText("Student " + existingStudent.getFullName() +
+                                    " (indeks: " + indexNumber + ") jest już przypisany do grupy: " +
+                                    existingStudent.getGroupName() +
+                                    "\n\nCzy chcesz przenieść go do grupy " + currentGroup.getName() + "?");
+
+                            java.util.Optional<ButtonType> result = confirmAlert.showAndWait();
+                            if (result.isPresent() && result.get() == ButtonType.OK) {
+                                addStudentButton.setDisable(true);
+                                addStudentButton.setText("Przenoszę...");
+
+                                // Przenieś studenta
+                                Student updatedStudent = new Student(existingStudent.getFirstName(),
+                                        existingStudent.getLastName(),
+                                        existingStudent.getIndexNumber(),
+                                        currentGroup.getName());
+                                updateStudentGroup(updatedStudent, existingStudent.getFullName());
+                            }
+                            return;
+                        }
+
+                        System.out.println("Student nie ma grupy - przypisuję do: " + currentGroup.getName());
+
+                        // Przypisz studenta do bieżącej grupy
+                        Student updatedStudent = new Student(existingStudent.getFirstName(),
+                                existingStudent.getLastName(),
+                                existingStudent.getIndexNumber(),
+                                currentGroup.getName());
+
+                        updateStudentGroup(updatedStudent, existingStudent.getFullName());
+                    });
+                })
+                .exceptionally(throwable -> {
+                    System.err.println("BŁĄD pobierania studentów z serwera: " + throwable.getMessage());
+                    javafx.application.Platform.runLater(() -> {
+                        addStudentButton.setDisable(false);
+                        addStudentButton.setText("Dodaj studenta");
+                        showAlert("Błąd serwera",
+                                "Nie udało się sprawdzić czy student istnieje:\n" + throwable.getMessage(),
+                                Alert.AlertType.ERROR);
+                    });
+                    return null;
+                });
+    }
+
+    /**
+     * Tworzy nowego studenta lub aktualizuje istniejącego
+     */
+    private void createOrUpdateStudent(String firstName, String lastName, String indexNumber) {
         Student newStudent = new Student(firstName, lastName, indexNumber, currentGroup.getName());
-
-        addStudentButton.setDisable(true);
-        addStudentButton.setText("Dodawanie...");
 
         studentService.addStudentAsync(newStudent)
                 .thenAccept(savedStudent -> {
@@ -323,7 +401,7 @@ public class GroupDetailController {
                         updateCounts();
 
                         showAlert("Sukces", "Student " + newStudent.getFullName() +
-                                        " został dodany do grupy " + currentGroup.getName() + "!",
+                                        " został utworzony i dodany do grupy " + currentGroup.getName() + "!",
                                 Alert.AlertType.INFORMATION);
                     });
                 })
@@ -332,20 +410,118 @@ public class GroupDetailController {
                         addStudentButton.setDisable(false);
                         addStudentButton.setText("Dodaj studenta");
 
-                        students.add(newStudent);
-                        animateButton(addStudentButton);
-                        clearStudentForm();
-                        updateCounts();
+                        if (throwable.getCause() instanceof StudentService.StudentAlreadyExistsException) {
+                            // Student istnieje - spróbuj go zaktualizować (przypisać do grupy)
+                            updateStudentGroup(newStudent, newStudent.getFullName());
+                        } else {
+                            // Inny błąd - dodaj lokalnie
+                            students.add(newStudent);
+                            animateButton(addStudentButton);
+                            clearStudentForm();
+                            updateCounts();
 
-                        showAlert("Ostrzeżenie",
-                                "Student " + newStudent.getFullName() +
-                                        " został dodany lokalnie, ale nie udało się wysłać na serwer:\n" +
-                                        throwable.getMessage(), Alert.AlertType.WARNING);
+                            showAlert("Ostrzeżenie",
+                                    "Student " + newStudent.getFullName() +
+                                            " został dodany lokalnie do grupy " + currentGroup.getName() +
+                                            ", ale wystąpił problem z serwerem:\n" + throwable.getMessage(),
+                                    Alert.AlertType.WARNING);
+                        }
                     });
                     return null;
                 });
     }
 
+    /**
+     * Aktualizuje grupę studenta na serwerze
+     */
+    private void updateStudentGroup(Student student, String studentDisplayName) {
+        studentService.updateStudentAsync(student.getIndexNumber(), student)
+                .thenAccept(updatedStudent -> {
+                    javafx.application.Platform.runLater(() -> {
+                        students.add(student);
+                        animateButton(addStudentButton);
+                        clearStudentForm();
+                        updateCounts();
+
+                        showAlert("Sukces", "Student " + studentDisplayName +
+                                        " został przypisany do grupy " + currentGroup.getName() + "!",
+                                Alert.AlertType.INFORMATION);
+                    });
+                })
+                .exceptionally(updateThrowable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        // Dodaj lokalnie mimo błędu
+                        students.add(student);
+                        animateButton(addStudentButton);
+                        clearStudentForm();
+                        updateCounts();
+
+                        showAlert("Ostrzeżenie",
+                                "Student " + studentDisplayName +
+                                        " został dodany lokalnie do grupy " + currentGroup.getName() +
+                                        ", ale nie udało się zaktualizować na serwerze:\n" +
+                                        updateThrowable.getMessage(),
+                                Alert.AlertType.WARNING);
+                    });
+                    return null;
+                });
+    }
+
+    @FXML
+    protected void onAddStudentClick() {
+        String firstName = firstNameField.getText().trim();
+        String lastName = lastNameField.getText().trim();
+        String indexNumber = indexNumberField.getText().trim();
+
+        // DEBUG - pokaż co użytkownik wpisał
+        System.out.println("=== DEBUG DODAWANIE STUDENTA ===");
+        System.out.println("Imię: '" + firstName + "'");
+        System.out.println("Nazwisko: '" + lastName + "'");
+        System.out.println("Nr indeksu: '" + indexNumber + "'");
+        System.out.println("Grupa bieżąca: " + (currentGroup != null ? currentGroup.getName() : "NULL"));
+
+        if (indexNumber.isEmpty()) {
+            showAlert("Błąd", "Numer indeksu jest wymagany!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        if (!indexNumber.matches("\\d{6}")) {
+            showAlert("Błąd", "Numer indeksu musi składać się z dokładnie 6 cyfr!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        // Sprawdź czy student już jest w tej grupie
+        boolean studentInGroup = students.stream()
+                .anyMatch(s -> s.getIndexNumber().equals(indexNumber));
+        if (studentInGroup) {
+            showAlert("Błąd", "Student o numerze indeksu " + indexNumber +
+                    " już jest przypisany do tej grupy!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        addStudentButton.setDisable(true);
+        addStudentButton.setText("Sprawdzam...");
+
+        // SCENARIUSZ 1: Tylko numer indeksu (przypisz istniejącego)
+        if (firstName.isEmpty() && lastName.isEmpty()) {
+            System.out.println(">>> SCENARIUSZ 1: Przypisywanie istniejącego studenta");
+            assignExistingStudentToGroup(indexNumber);
+        }
+        // SCENARIUSZ 2: Pełne dane (utwórz nowego lub zaktualizuj istniejącego)
+        else if (!firstName.isEmpty() && !lastName.isEmpty()) {
+            System.out.println(">>> SCENARIUSZ 2: Tworzenie nowego studenta");
+            createOrUpdateStudent(firstName, lastName, indexNumber);
+        }
+        // SCENARIUSZ 3: Niepełne dane
+        else {
+            System.out.println(">>> SCENARIUSZ 3: Niepełne dane - błąd");
+            addStudentButton.setDisable(false);
+            addStudentButton.setText("Dodaj studenta");
+            showAlert("Błąd", "Podaj tylko numer indeksu (aby przypisać istniejącego studenta) " +
+                            "lub pełne dane: imię, nazwisko i numer indeksu (aby utworzyć nowego).",
+                    Alert.AlertType.WARNING);
+        }
+    }
     @FXML
     protected void onAddTerminClick() {
         String terminName = terminNameField.getText().trim();

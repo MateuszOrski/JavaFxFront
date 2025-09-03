@@ -1,31 +1,39 @@
 package com.example.javafxfront;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class GroupService {
 
-    // KONFIGURACJA SERWERA - ZMIEŃ NA SWÓJ ENDPOINT
-    private static final String BASE_URL = "http://localhost:8080/api"; // Twój serwer
+    private static final String BASE_URL = "http://localhost:8080/api";
     private static final String GROUPS_ENDPOINT = BASE_URL + "/groups";
 
     private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
     public GroupService() {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
+
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+        // KLUCZOWE - Ignoruj nieznane właściwości globalnie
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    /**
-     * Pobiera wszystkie grupy z serwera (asynchronicznie)
-     * @return CompletableFuture z listą grup
-     */
     public CompletableFuture<List<Group>> getAllGroupsAsync() {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -43,7 +51,8 @@ public class GroupService {
                 if (response.statusCode() == 200) {
                     return parseGroupsFromJson(response.body());
                 } else {
-                    throw new RuntimeException("Server responded with status: " + response.statusCode());
+                    throw new RuntimeException("Server responded with status: " + response.statusCode()
+                            + " Body: " + response.body());
                 }
 
             } catch (Exception e) {
@@ -52,11 +61,6 @@ public class GroupService {
         });
     }
 
-    /**
-     * Dodaje nową grupę na serwerze (asynchronicznie)
-     * @param group Grupa do dodania
-     * @return CompletableFuture z dodaną grupą
-     */
     public CompletableFuture<Group> addGroupAsync(Group group) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -75,26 +79,27 @@ public class GroupService {
 
                 if (response.statusCode() == 201 || response.statusCode() == 200) {
                     return parseGroupFromJson(response.body());
+                } else if (response.statusCode() == 409) {
+                    throw new GroupAlreadyExistsException("Grupa o nazwie '" + group.getName() + "' już istnieje w systemie!");
                 } else {
-                    throw new RuntimeException("Server responded with status: " + response.statusCode());
+                    throw new RuntimeException("Server responded with status: " + response.statusCode()
+                            + " Body: " + response.body());
                 }
 
+            } catch (GroupAlreadyExistsException e) {
+                throw e;
             } catch (Exception e) {
                 throw new RuntimeException("Failed to add group to server: " + e.getMessage(), e);
             }
         });
     }
 
-    /**
-     * Usuwa grupę z serwera (asynchronicznie)
-     * @param groupId ID grupy do usunięcia
-     * @return CompletableFuture<Boolean> - true jeśli usunięto pomyślnie
-     */
-    public CompletableFuture<Boolean> deleteGroupAsync(String groupId) {
+    public CompletableFuture<Boolean> deleteGroupAsync(String groupName) {
         return CompletableFuture.supplyAsync(() -> {
             try {
+                String encodedName = java.net.URLEncoder.encode(groupName, "UTF-8");
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(GROUPS_ENDPOINT + "/" + groupId))
+                        .uri(URI.create(GROUPS_ENDPOINT + "/" + encodedName))
                         .header("Content-Type", "application/json")
                         .timeout(Duration.ofSeconds(30))
                         .DELETE()
@@ -111,15 +116,11 @@ public class GroupService {
         });
     }
 
-    /**
-     * Sprawdza połączenie z serwerem
-     * @return CompletableFuture<Boolean> - true jeśli serwer jest dostępny
-     */
     public CompletableFuture<Boolean> checkServerConnection() {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(BASE_URL + "/health")) // endpoint health check
+                        .uri(URI.create(GROUPS_ENDPOINT + "/health"))
                         .timeout(Duration.ofSeconds(5))
                         .GET()
                         .build();
@@ -130,7 +131,7 @@ public class GroupService {
                 return response.statusCode() == 200;
 
             } catch (Exception e) {
-                return false; // Serwer niedostępny
+                return false;
             }
         });
     }
@@ -138,59 +139,63 @@ public class GroupService {
     // === METODY PRYWATNE DO PARSOWANIA JSON ===
 
     private List<Group> parseGroupsFromJson(String json) {
-        // PRZYKŁAD - Dostosuj do swojego formatu JSON
-        // Tutaj możesz użyć biblioteki jak Jackson, Gson, lub parsować ręcznie
+        try {
+            List<GroupFromServer> serverGroups = objectMapper.readValue(json, new TypeReference<List<GroupFromServer>>() {});
 
-        /* Przykładowy format JSON z serwera:
-        [
-            {
-                "id": "1",
-                "name": "Grupa INF-A",
-                "specialization": "Informatyka",
-                "createdDate": "2024-01-15T10:30:00"
-            },
-            {
-                "id": "2",
-                "name": "Grupa MAT-B",
-                "specialization": "Matematyka",
-                "createdDate": "2024-01-16T14:20:00"
-            }
-        ]
-        */
+            return serverGroups.stream()
+                    .map(this::convertToGroup)
+                    .toList();
 
-        // TYMCZASOWA IMPLEMENTACJA - ZMIEŃ NA PRAWDZIWE PARSOWANIE
-        java.util.List<Group> groups = new java.util.ArrayList<>();
-
-        // Tu dodaj kod parsujący JSON z Twojego serwera
-        // Na przykład używając Jackson ObjectMapper:
-        // ObjectMapper mapper = new ObjectMapper();
-        // return mapper.readValue(json, new TypeReference<List<Group>>(){});
-
-        return groups;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse groups JSON: " + e.getMessage(), e);
+        }
     }
 
     private Group parseGroupFromJson(String json) {
-        // TYMCZASOWA IMPLEMENTACJA - ZMIEŃ NA PRAWDZIWE PARSOWANIE
-        // Parsuj pojedynczą grupę z JSON response
-
-        return null; // Zamień na prawdziwe parsowanie
+        try {
+            GroupFromServer serverGroup = objectMapper.readValue(json, GroupFromServer.class);
+            return convertToGroup(serverGroup);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse group JSON: " + e.getMessage(), e);
+        }
     }
 
     private String groupToJson(Group group) {
-        // TYMCZASOWA IMPLEMENTACJA - ZMIEŃ NA PRAWDZIWE TWORZENIE JSON
-        // Konwertuj grupę do JSON dla wysłania na serwer
+        try {
+            GroupToServer groupToServer = new GroupToServer();
+            groupToServer.name = group.getName();
+            groupToServer.specialization = group.getSpecialization();
 
-        /* Przykładowy format:
-        {
-            "name": "Grupa INF-A",
-            "specialization": "Informatyka"
+            return objectMapper.writeValueAsString(groupToServer);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to convert group to JSON: " + e.getMessage(), e);
         }
-        */
+    }
 
-        return String.format(
-                "{\"name\":\"%s\",\"specialization\":\"%s\"}",
-                group.getName(),
-                group.getSpecialization()
-        );
+    private Group convertToGroup(GroupFromServer serverGroup) {
+        Group group = new Group(serverGroup.name, serverGroup.specialization);
+        return group;
+    }
+
+    // === KLASY POMOCNICZE DO SERIALIZACJI - BEZ ADNOTACJI ===
+
+    private static class GroupFromServer {
+        public Long id;
+        public String name;
+        public String specialization;
+        public LocalDateTime createdDate;
+        public Boolean active;
+    }
+
+    private static class GroupToServer {
+        public String name;
+        public String specialization;
+    }
+
+    // === CUSTOM EXCEPTION ===
+    public static class GroupAlreadyExistsException extends RuntimeException {
+        public GroupAlreadyExistsException(String message) {
+            super(message);
+        }
     }
 }
