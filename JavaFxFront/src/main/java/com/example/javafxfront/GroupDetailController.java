@@ -952,62 +952,281 @@ public class GroupDetailController {
         updateCounts();
     }
 
+    // Dodaj tę metodę do klasy GroupDetailController.java
+// Zastąpi istniejącą metodę onRemoveStudentClick()
+
     @FXML
     protected void onRemoveStudentClick() {
         Student selectedStudent = studentsListView.getSelectionModel().getSelectedItem();
         if (selectedStudent != null) {
-            Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
-            confirmAlert.setTitle("Potwierdzenie usunięcia");
-            confirmAlert.setContentText("Czy na pewno chcesz usunąć studenta " + selectedStudent.getFullName() + "?");
+            // Tworzymy custom dialog z dodatkowym polem
+            Dialog<ButtonType> confirmDialog = new Dialog<>();
+            confirmDialog.setTitle("Potwierdzenie usunięcia studenta");
+            confirmDialog.setHeaderText("Czy na pewno chcesz usunąć studenta " + selectedStudent.getFullName() + "?");
 
-            Optional<ButtonType> result = confirmAlert.showAndWait();
-            if (result.isPresent() && result.get() == ButtonType.OK) {
-                studentService.deleteStudentAsync(selectedStudent.getIndexNumber())
-                        .thenAccept(success -> {
-                            javafx.application.Platform.runLater(() -> {
-                                students.remove(selectedStudent);
+            // Ikona ostrzeżenia
+            confirmDialog.setGraphic(new javafx.scene.control.Label("⚠️"));
 
-                                // Usuń studenta ze wszystkich terminów (lokalnie i z serwera)
-                                for (ClassSchedule schedule : schedules) {
-                                    if (schedule.hasAttendanceForStudent(selectedStudent)) {
-                                        // Usuń z serwera jeśli termin ma ID
-                                        if (schedule.getId() != null) {
-                                            attendanceService.removeAttendanceAsync(
-                                                    selectedStudent.getIndexNumber(),
-                                                    schedule.getId()
-                                            ).exceptionally(throwable -> {
-                                                System.err.println("Błąd usuwania obecności studenta z serwera: " + throwable.getMessage());
-                                                return null;
-                                            });
-                                        }
-                                        // Usuń lokalnie
-                                        schedule.removeAttendance(selectedStudent);
-                                    }
-                                }
-                                refreshSchedulesList();
+            // Buttons
+            ButtonType removeButtonType = new ButtonType("Usuń studenta", ButtonBar.ButtonData.OK_DONE);
+            ButtonType cancelButtonType = new ButtonType("Anuluj", ButtonBar.ButtonData.CANCEL_CLOSE);
+            confirmDialog.getDialogPane().getButtonTypes().addAll(removeButtonType, cancelButtonType);
 
-                                updateCounts();
-                                showAlert("Sukces", "Student został usunięty.", Alert.AlertType.INFORMATION);
-                            });
-                        })
-                        .exceptionally(throwable -> {
-                            javafx.application.Platform.runLater(() -> {
-                                students.remove(selectedStudent);
+            // Tworzenie content z dodatkowymi polami
+            VBox content = new VBox(15);
+            content.setPadding(new Insets(20));
+            content.setStyle("-fx-background-color: #FFFFFF;");
 
-                                // Usuń studenta ze wszystkich terminów (tylko lokalnie)
-                                for (ClassSchedule schedule : schedules) {
-                                    schedule.removeAttendance(selectedStudent);
-                                }
-                                refreshSchedulesList();
+            // Informacje o studencie
+            VBox studentInfo = new VBox(8);
+            studentInfo.setStyle("-fx-background-color: rgba(220, 20, 60, 0.05); " +
+                    "-fx-padding: 15; " +
+                    "-fx-background-radius: 10; " +
+                    "-fx-border-color: rgba(220, 20, 60, 0.2); " +
+                    "-fx-border-width: 1; " +
+                    "-fx-border-radius: 10;");
 
-                                updateCounts();
-                                showAlert("Ostrzeżenie", "Student został usunięty lokalnie.", Alert.AlertType.WARNING);
-                            });
-                            return null;
-                        });
+            Label studentNameLabel = new Label("Student: " + selectedStudent.getFullName());
+            studentNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #DC143C;");
+
+            Label studentIndexLabel = new Label("Nr indeksu: " + selectedStudent.getIndexNumber());
+            studentIndexLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #212529;");
+
+            Label studentGroupLabel = new Label("Grupa: " + (selectedStudent.getGroupName() != null ? selectedStudent.getGroupName() : "Brak"));
+            studentGroupLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #212529;");
+
+            studentInfo.getChildren().addAll(studentNameLabel, studentIndexLabel, studentGroupLabel);
+
+            // Dodatkowe pole - Powód usunięcia
+            VBox reasonSection = new VBox(8);
+
+            Label reasonLabel = new Label("Powód usunięcia (opcjonalne):");
+            reasonLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #212529;");
+
+            ComboBox<String> reasonComboBox = new ComboBox<>();
+            reasonComboBox.getItems().addAll(
+                    "Rezygnacja ze studiów",
+                    "Przejście do innej grupy",
+                    "Zakończenie studiów",
+                    "Długotrwała nieobecność",
+                    "Prośba studenta",
+                    "Decyzja administracyjna",
+                    "Błąd w systemie",
+                    "Inne"
+            );
+            reasonComboBox.setPromptText("Wybierz powód...");
+            reasonComboBox.setMaxWidth(Double.MAX_VALUE);
+            reasonComboBox.setStyle("-fx-background-color: #F8F9FA; " +
+                    "-fx-border-color: rgba(220, 20, 60, 0.3); " +
+                    "-fx-border-width: 0 0 2 0; " +
+                    "-fx-background-radius: 5; " +
+                    "-fx-padding: 8;");
+
+            // Pole tekstowe dla dodatkowych uwag
+            Label notesLabel = new Label("Dodatkowe uwagi:");
+            notesLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #212529;");
+
+            TextArea notesTextArea = new TextArea();
+            notesTextArea.setPromptText("Wpisz dodatkowe uwagi dotyczące usunięcia studenta...");
+            notesTextArea.setPrefRowCount(3);
+            notesTextArea.setMaxHeight(80);
+            notesTextArea.setStyle("-fx-background-color: #F8F9FA; " +
+                    "-fx-border-color: rgba(220, 20, 60, 0.3); " +
+                    "-fx-border-width: 0 0 2 0; " +
+                    "-fx-background-radius: 5; " +
+                    "-fx-padding: 8; " +
+                    "-fx-font-size: 12px;");
+
+            reasonSection.getChildren().addAll(reasonLabel, reasonComboBox, notesLabel, notesTextArea);
+
+            // Checkbox dla potwierdzenia
+            CheckBox confirmationCheckBox = new CheckBox("Potwierdzam, że chcę usunąć tego studenta z grupy");
+            confirmationCheckBox.setStyle("-fx-font-size: 12px; -fx-text-fill: #212529; -fx-font-weight: bold;");
+
+            // Ostrzeżenie
+            VBox warningBox = new VBox(5);
+            warningBox.setStyle("-fx-background-color: rgba(229, 62, 62, 0.1); " +
+                    "-fx-padding: 12; " +
+                    "-fx-background-radius: 8; " +
+                    "-fx-border-color: rgba(229, 62, 62, 0.3); " +
+                    "-fx-border-width: 1; " +
+                    "-fx-border-radius: 8;");
+
+            Label warningTitle = new Label("⚠️ UWAGA:");
+            warningTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #E53E3E;");
+
+            Label warningText1 = new Label("• Student zostanie usunięty z grupy i wszystkich terminów");
+            warningText1.setStyle("-fx-font-size: 11px; -fx-text-fill: #E53E3E;");
+
+            Label warningText2 = new Label("• Wszystkie wpisy frekwencji dla tego studenta zostaną utracone");
+            warningText2.setStyle("-fx-font-size: 11px; -fx-text-fill: #E53E3E;");
+
+            Label warningText3 = new Label("• Ta operacja jest nieodwracalna!");
+            warningText3.setStyle("-fx-font-size: 11px; -fx-text-fill: #E53E3E; -fx-font-weight: bold;");
+
+            warningBox.getChildren().addAll(warningTitle, warningText1, warningText2, warningText3);
+
+            // Dodaj wszystko do content
+            content.getChildren().addAll(studentInfo, reasonSection, confirmationCheckBox, warningBox);
+
+            confirmDialog.getDialogPane().setContent(content);
+
+            // Stylizacja dialogu
+            confirmDialog.getDialogPane().getStylesheets().add(
+                    getClass().getResource("styles.css").toExternalForm());
+            confirmDialog.getDialogPane().getStyleClass().add("alert-dialog");
+
+            // Walidacja - przycisk usuń aktywny tylko gdy checkbox zaznaczony
+            javafx.scene.Node removeButton = confirmDialog.getDialogPane().lookupButton(removeButtonType);
+            removeButton.setDisable(true);
+
+            confirmationCheckBox.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+                removeButton.setDisable(!isSelected);
+            });
+
+            // Pokaż dialog i przetwórz wynik
+            Optional<ButtonType> result = confirmDialog.showAndWait();
+
+            if (result.isPresent() && result.get() == removeButtonType) {
+                // Zbierz dodatkowe informacje
+                String reason = reasonComboBox.getValue();
+                String notes = notesTextArea.getText().trim();
+
+                // Wyświetl podsumowanie przed usunięciem (opcjonalne)
+                StringBuilder summary = new StringBuilder();
+                summary.append("Usuwanie studenta: ").append(selectedStudent.getFullName()).append("\n");
+                if (reason != null && !reason.isEmpty()) {
+                    summary.append("Powód: ").append(reason).append("\n");
+                }
+                if (!notes.isEmpty()) {
+                    summary.append("Uwagi: ").append(notes).append("\n");
+                }
+                summary.append("\nCzy kontynuować?");
+
+                Alert finalConfirm = new Alert(Alert.AlertType.CONFIRMATION);
+                finalConfirm.setTitle("Ostateczne potwierdzenie");
+                finalConfirm.setHeaderText("Podsumowanie usunięcia");
+                finalConfirm.setContentText(summary.toString());
+
+                Optional<ButtonType> finalResult = finalConfirm.showAndWait();
+                if (finalResult.isPresent() && finalResult.get() == ButtonType.OK) {
+
+                    // *** WŁAŚCIWE USUWANIE STUDENTA ***
+                    performStudentRemoval(selectedStudent, reason, notes);
+                }
             }
         }
     }
+
+    /**
+     * Wykonuje właściwe usunięcie studenta z dodatkowym logowaniem
+     */
+    private void performStudentRemoval(Student student, String reason, String notes) {
+        // Logowanie przed usunięciem
+        logStudentRemoval(student, reason, notes);
+
+        // Wywołanie usunięcia z serwera
+        studentService.deleteStudentAsync(student.getIndexNumber())
+                .thenAccept(success -> {
+                    javafx.application.Platform.runLater(() -> {
+                        // Usuń z lokalnej listy
+                        students.remove(student);
+
+                        // Usuń studenta ze wszystkich terminów (lokalnie i z serwera)
+                        for (ClassSchedule schedule : schedules) {
+                            if (schedule.hasAttendanceForStudent(student)) {
+                                // Usuń z serwera jeśli termin ma ID
+                                if (schedule.getId() != null) {
+                                    attendanceService.removeAttendanceAsync(
+                                            student.getIndexNumber(),
+                                            schedule.getId()
+                                    ).exceptionally(throwable -> {
+                                        System.err.println("Błąd usuwania obecności studenta z serwera: " + throwable.getMessage());
+                                        return null;
+                                    });
+                                }
+                                // Usuń lokalnie
+                                schedule.removeAttendance(student);
+                            }
+                        }
+                        refreshSchedulesList();
+                        updateCounts();
+
+                        // Pokaż potwierdzenie z dodatkowymi informacjami
+                        StringBuilder confirmMessage = new StringBuilder();
+                        confirmMessage.append("✅ Student ").append(student.getFullName()).append(" został usunięty z serwera!");
+                        if (reason != null && !reason.isEmpty()) {
+                            confirmMessage.append("\n📝 Powód: ").append(reason);
+                        }
+                        if (notes != null && !notes.isEmpty()) {
+                            confirmMessage.append("\n💬 Uwagi: ").append(notes);
+                        }
+                        confirmMessage.append("\n🗑️ Usunięto wszystkie powiązane dane frekwencji.");
+
+                        showAlert("Student usunięty", confirmMessage.toString(), Alert.AlertType.INFORMATION);
+                    });
+                })
+                .exceptionally(throwable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        // Usuń lokalnie mimo błędu serwera
+                        students.remove(student);
+
+                        // Usuń studenta ze wszystkich terminów (tylko lokalnie)
+                        for (ClassSchedule schedule : schedules) {
+                            schedule.removeAttendance(student);
+                        }
+                        refreshSchedulesList();
+                        updateCounts();
+
+                        StringBuilder warningMessage = new StringBuilder();
+                        warningMessage.append("⚠️ Student ").append(student.getFullName()).append(" został usunięty lokalnie,");
+                        warningMessage.append("\nale wystąpił problem z serwerem: ").append(throwable.getMessage());
+                        if (reason != null && !reason.isEmpty()) {
+                            warningMessage.append("\n📝 Powód: ").append(reason);
+                        }
+
+                        showAlert("Ostrzeżenie", warningMessage.toString(), Alert.AlertType.WARNING);
+                    });
+                    return null;
+                });
+    }
+
+    /**
+     * Loguje usunięcie studenta do konsoli/pliku (rozszerz wedle potrzeb)
+     */
+    private void logStudentRemoval(Student student, String reason, String notes) {
+        StringBuilder logEntry = new StringBuilder();
+        logEntry.append("=== USUNIĘCIE STUDENTA ===\n");
+        logEntry.append("Data: ").append(java.time.LocalDateTime.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))).append("\n");
+        logEntry.append("Student: ").append(student.getFullName()).append("\n");
+        logEntry.append("Nr indeksu: ").append(student.getIndexNumber()).append("\n");
+        logEntry.append("Grupa: ").append(student.getGroupName() != null ? student.getGroupName() : "Brak").append("\n");
+
+        if (reason != null && !reason.isEmpty()) {
+            logEntry.append("Powód: ").append(reason).append("\n");
+        }
+        if (notes != null && !notes.isEmpty()) {
+            logEntry.append("Uwagi: ").append(notes).append("\n");
+        }
+        logEntry.append("========================\n");
+
+        // Wyświetl w konsoli
+        System.out.println(logEntry.toString());
+
+        // TODO: Zapisz do pliku logów jeśli potrzebne
+        // appendToLogFile(logEntry.toString());
+    }
+
+// Dodaj także import dla nowych klas JavaFX na górze pliku:
+/*
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.TextArea;
+*/
 
     @FXML
     protected void onRemoveScheduleClick() {

@@ -13,6 +13,17 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import java.util.Optional;
 
+// ========== DODANE IMPORTY ==========
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.TextArea;
+import javafx.geometry.Insets;
+import java.util.List;
+// ====================================
+
 public class ModernController {
     @FXML private Label titleLabel;
     @FXML private Label subtitleLabel;
@@ -36,6 +47,30 @@ public class ModernController {
     // DODANE - Nowe elementy dla studentów
     @FXML private Button refreshStudentsGlobalButton;
     @FXML private Label studentCountLabel;
+
+    // ========== NOWE POLA ZARZĄDZANIA STUDENTAMI ==========
+    @FXML private VBox studentManagementCard;
+    @FXML private TextField searchStudentField;
+    @FXML private Button searchStudentButton;
+    @FXML private Button refreshAllStudentsButton;
+    @FXML private Label allStudentsCountLabel;
+
+    @FXML private VBox foundStudentInfo;
+    @FXML private Label foundStudentNameLabel;
+    @FXML private Label foundStudentGroupLabel;
+    @FXML private Label foundStudentDateLabel;
+    @FXML private Button editFoundStudentButton;
+    @FXML private Button removeFoundStudentButton;
+
+    @FXML private ListView<Student> recentStudentsListView;
+    @FXML private Button manageAllStudentsButton;
+
+    // Obecnie znaleziony student
+    private Student currentFoundStudent;
+
+    // Lista ostatnio dodanych studentów
+    private ObservableList<Student> recentStudents;
+    // =====================================================
 
     private ObservableList<Group> groups;
     private GroupService groupService;
@@ -67,7 +102,371 @@ public class ModernController {
         checkServerConnection();
         setupStudentIndexValidation();
         loadStudentCountFromServer(); // DODANE
+
+        // ========== DODANE - INICJALIZACJA ZARZĄDZANIA STUDENTAMI ==========
+        initializeStudentManagement();
+        // ==================================================================
     }
+
+    // ========== NOWE METODY ZARZĄDZANIA STUDENTAMI ==========
+
+    private void initializeStudentManagement() {
+        recentStudents = FXCollections.observableArrayList();
+        if (recentStudentsListView != null) {
+            recentStudentsListView.setItems(recentStudents);
+            recentStudentsListView.setCellFactory(listView -> new RecentStudentListCell());
+        }
+
+        // Ukryj info o znalezionym studencie na początku
+        if (foundStudentInfo != null) {
+            foundStudentInfo.setVisible(false);
+            foundStudentInfo.setManaged(false);
+        }
+
+        // Walidacja pola wyszukiwania
+        setupSearchValidation();
+
+        // Załaduj ostatnio dodanych studentów
+        loadRecentStudents();
+        loadAllStudentsCount();
+    }
+
+    private void setupSearchValidation() {
+        if (searchStudentField != null) {
+            searchStudentField.textProperty().addListener((observable, oldValue, newValue) -> {
+                // Tylko cyfry, max 6 znaków
+                String digitsOnly = newValue.replaceAll("[^0-9]", "");
+                if (digitsOnly.length() > 6) {
+                    digitsOnly = digitsOnly.substring(0, 6);
+                }
+                if (!digitsOnly.equals(newValue)) {
+                    searchStudentField.setText(digitsOnly);
+                }
+
+                // Ukryj info o znalezionym studencie gdy użytkownik zmienia wyszukiwanie
+                hideFoundStudentInfo();
+            });
+        }
+    }
+
+    @FXML
+    protected void onSearchStudentClick() {
+        String indexNumber = searchStudentField.getText().trim();
+
+        if (indexNumber.isEmpty()) {
+            showAlert("Błąd", "Wpisz numer indeksu studenta!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        if (!indexNumber.matches("\\d{6}")) {
+            showAlert("Błąd", "Numer indeksu musi składać się z 6 cyfr!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        searchStudentButton.setText("Szukam...");
+        searchStudentButton.setDisable(true);
+
+        // Szukaj studenta na serwerze
+        studentService.getAllStudentsAsync()
+                .thenAccept(allStudents -> {
+                    javafx.application.Platform.runLater(() -> {
+                        searchStudentButton.setText("🔍 Znajdź studenta");
+                        searchStudentButton.setDisable(false);
+
+                        Student foundStudent = allStudents.stream()
+                                .filter(s -> s.getIndexNumber().equals(indexNumber))
+                                .findFirst()
+                                .orElse(null);
+
+                        if (foundStudent != null) {
+                            showFoundStudent(foundStudent);
+                        } else {
+                            hideFoundStudentInfo();
+                            showAlert("Student nie znaleziony",
+                                    "Nie znaleziono studenta o numerze indeksu: " + indexNumber,
+                                    Alert.AlertType.INFORMATION);
+                        }
+                    });
+                })
+                .exceptionally(throwable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        searchStudentButton.setText("🔍 Znajdź studenta");
+                        searchStudentButton.setDisable(false);
+                        hideFoundStudentInfo();
+                        showAlert("Błąd", "Nie udało się wyszukać studenta: " + throwable.getMessage(),
+                                Alert.AlertType.ERROR);
+                    });
+                    return null;
+                });
+    }
+
+    private void showFoundStudent(Student student) {
+        currentFoundStudent = student;
+
+        if (foundStudentInfo != null) {
+            foundStudentNameLabel.setText("👤 " + student.getFullName());
+            foundStudentGroupLabel.setText("🏫 Grupa: " + (student.getGroupName() != null ? student.getGroupName() : "Brak"));
+            foundStudentDateLabel.setText("📅 Dodano: " + student.getFormattedDate());
+
+            foundStudentInfo.setVisible(true);
+            foundStudentInfo.setManaged(true);
+        }
+    }
+
+    private void hideFoundStudentInfo() {
+        currentFoundStudent = null;
+        if (foundStudentInfo != null) {
+            foundStudentInfo.setVisible(false);
+            foundStudentInfo.setManaged(false);
+        }
+    }
+
+    @FXML
+    protected void onEditFoundStudentClick() {
+        if (currentFoundStudent != null) {
+            // Otwórz dialog edycji studenta
+            openEditStudentDialog(currentFoundStudent);
+        }
+    }
+
+    @FXML
+    protected void onRemoveFoundStudentClick() {
+        if (currentFoundStudent != null) {
+            // *** TU UŻYWAMY NOWEJ FUNKCJI USUWANIA Z DODATKOWYMI POLAMI ***
+            performAdvancedStudentRemoval(currentFoundStudent);
+        }
+    }
+
+    @FXML
+    protected void onRefreshAllStudentsClick() {
+        loadAllStudentsCount();
+        loadRecentStudents();
+    }
+
+    @FXML
+    protected void onManageAllStudentsClick() {
+        // Otwórz okno pełnego zarządzania studentami
+        openFullStudentManagementWindow();
+    }
+
+    private void loadAllStudentsCount() {
+        studentService.getAllStudentsAsync()
+                .thenAccept(allStudents -> {
+                    javafx.application.Platform.runLater(() -> {
+                        if (allStudentsCountLabel != null) {
+                            long withGroup = allStudents.stream().filter(s -> s.getGroupName() != null && !s.getGroupName().trim().isEmpty()).count();
+                            long withoutGroup = allStudents.size() - withGroup;
+
+                            allStudentsCountLabel.setText(String.format("Wszystkich studentów: %d (z grupą: %d, bez grupy: %d)",
+                                    allStudents.size(), withGroup, withoutGroup));
+                            allStudentsCountLabel.setStyle("-fx-text-fill: #38A169;");
+                        }
+                    });
+                })
+                .exceptionally(throwable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        if (allStudentsCountLabel != null) {
+                            allStudentsCountLabel.setText("Błąd ładowania liczby studentów");
+                            allStudentsCountLabel.setStyle("-fx-text-fill: #E53E3E;");
+                        }
+                    });
+                    return null;
+                });
+    }
+
+    private void loadRecentStudents() {
+        studentService.getAllStudentsAsync()
+                .thenAccept(allStudents -> {
+                    javafx.application.Platform.runLater(() -> {
+                        // Posortuj po dacie dodania i weź 5 ostatnich
+                        List<Student> recent = allStudents.stream()
+                                .sorted((s1, s2) -> s2.getAddedDate().compareTo(s1.getAddedDate()))
+                                .limit(5)
+                                .collect(java.util.stream.Collectors.toList());
+
+                        recentStudents.clear();
+                        recentStudents.addAll(recent);
+                    });
+                })
+                .exceptionally(throwable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        System.err.println("Błąd ładowania ostatnich studentów: " + throwable.getMessage());
+                    });
+                    return null;
+                });
+    }
+
+    /**
+     * GŁÓWNA FUNKCJA - Zaawansowane usuwanie studenta z dodatkowymi polami
+     */
+    private void performAdvancedStudentRemoval(Student student) {
+        // Użyj tej samej logiki co w GroupDetailController, ale dostosowanej do głównego ekranu
+        Dialog<ButtonType> confirmDialog = new Dialog<>();
+        confirmDialog.setTitle("Usuwanie studenta z systemu");
+        confirmDialog.setHeaderText("Czy na pewno chcesz usunąć studenta " + student.getFullName() + " z całego systemu?");
+
+        ButtonType removeButtonType = new ButtonType("Usuń całkowicie", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelButtonType = new ButtonType("Anuluj", ButtonBar.ButtonData.CANCEL_CLOSE);
+        confirmDialog.getDialogPane().getButtonTypes().addAll(removeButtonType, cancelButtonType);
+
+        // Content dialogu
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+
+        // Info o studencie
+        VBox studentInfo = new VBox(8);
+        studentInfo.setStyle("-fx-background-color: rgba(220, 20, 60, 0.05); " +
+                "-fx-padding: 15; -fx-background-radius: 10; " +
+                "-fx-border-color: rgba(220, 20, 60, 0.2); " +
+                "-fx-border-width: 1; -fx-border-radius: 10;");
+
+        Label nameLabel = new Label("👤 Student: " + student.getFullName());
+        nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #DC143C;");
+
+        Label indexLabel = new Label("🆔 Nr indeksu: " + student.getIndexNumber());
+        indexLabel.setStyle("-fx-font-size: 12px;");
+
+        Label groupLabel = new Label("🏫 Grupa: " + (student.getGroupName() != null ? student.getGroupName() : "Brak"));
+        groupLabel.setStyle("-fx-font-size: 12px;");
+
+        studentInfo.getChildren().addAll(nameLabel, indexLabel, groupLabel);
+
+        // Pole powodu
+        VBox reasonSection = new VBox(8);
+        Label reasonLabel = new Label("📝 Powód usunięcia:");
+        reasonLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+
+        ComboBox<String> reasonCombo = new ComboBox<>();
+        reasonCombo.getItems().addAll(
+                "Zakończenie studiów", "Rezygnacja", "Przeniesienie na inne uczelnie",
+                "Błąd w systemie", "Duplikat", "Nieaktywność", "Inne"
+        );
+        reasonCombo.setPromptText("Wybierz powód...");
+        reasonCombo.setMaxWidth(Double.MAX_VALUE);
+
+        TextArea notesArea = new TextArea();
+        notesArea.setPromptText("Dodatkowe uwagi...");
+        notesArea.setPrefRowCount(2);
+        notesArea.setMaxHeight(60);
+
+        reasonSection.getChildren().addAll(reasonLabel, reasonCombo,
+                new Label("💬 Uwagi:"), notesArea);
+
+        // Checkbox potwierdzenia
+        CheckBox confirmBox = new CheckBox("Potwierdzam całkowite usunięcie studenta z systemu");
+        confirmBox.setStyle("-fx-font-weight: bold;");
+
+        // Ostrzeżenie
+        VBox warningBox = new VBox(5);
+        warningBox.setStyle("-fx-background-color: rgba(229, 62, 62, 0.1); " +
+                "-fx-padding: 12; -fx-background-radius: 8; " +
+                "-fx-border-color: rgba(229, 62, 62, 0.3); " +
+                "-fx-border-width: 1; -fx-border-radius: 8;");
+
+        Label warningTitle = new Label("⚠️ OSTRZEŻENIE:");
+        warningTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #E53E3E;");
+
+        Label warning1 = new Label("• Student zostanie usunięty ze WSZYSTKICH grup");
+        Label warning2 = new Label("• WSZYSTKIE dane frekwencji zostaną utracone");
+        Label warning3 = new Label("• Ta operacja jest NIEODWRACALNA!");
+
+        warningBox.getChildren().addAll(warningTitle, warning1, warning2, warning3);
+
+        content.getChildren().addAll(studentInfo, reasonSection, confirmBox, warningBox);
+        confirmDialog.getDialogPane().setContent(content);
+
+        // Stylizacja dialogu
+        confirmDialog.getDialogPane().getStylesheets().add(
+                getClass().getResource("styles.css").toExternalForm());
+        confirmDialog.getDialogPane().getStyleClass().add("alert-dialog");
+
+        // Walidacja
+        javafx.scene.Node removeButton = confirmDialog.getDialogPane().lookupButton(removeButtonType);
+        removeButton.setDisable(true);
+        confirmBox.selectedProperty().addListener((obs, was, is) -> removeButton.setDisable(!is));
+
+        // Pokaż dialog
+        Optional<ButtonType> result = confirmDialog.showAndWait();
+        if (result.isPresent() && result.get() == removeButtonType) {
+            String reason = reasonCombo.getValue();
+            String notes = notesArea.getText().trim();
+
+            // Wykonaj usunięcie
+            executeStudentRemovalFromSystem(student, reason, notes);
+        }
+    }
+
+    private void executeStudentRemovalFromSystem(Student student, String reason, String notes) {
+        studentService.deleteStudentAsync(student.getIndexNumber())
+                .thenAccept(success -> {
+                    javafx.application.Platform.runLater(() -> {
+                        // Odśwież listy
+                        loadAllStudentsCount();
+                        loadRecentStudents();
+                        hideFoundStudentInfo();
+                        searchStudentField.clear();
+
+                        StringBuilder message = new StringBuilder();
+                        message.append("✅ Student ").append(student.getFullName()).append(" został usunięty z systemu!");
+                        if (reason != null) message.append("\n📝 Powód: ").append(reason);
+                        if (!notes.isEmpty()) message.append("\n💬 Uwagi: ").append(notes);
+
+                        showAlert("Student usunięty", message.toString(), Alert.AlertType.INFORMATION);
+
+                        // Log
+                        System.out.println("=== USUNIĘCIE STUDENTA Z GŁÓWNEGO EKRANU ===");
+                        System.out.println("Student: " + student.getFullName());
+                        System.out.println("Nr indeksu: " + student.getIndexNumber());
+                        if (reason != null) System.out.println("Powód: " + reason);
+                        if (!notes.isEmpty()) System.out.println("Uwagi: " + notes);
+                        System.out.println("Data: " + java.time.LocalDateTime.now());
+                        System.out.println("============================================");
+                    });
+                })
+                .exceptionally(throwable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        showAlert("Błąd", "Nie udało się usunąć studenta: " + throwable.getMessage(),
+                                Alert.AlertType.ERROR);
+                    });
+                    return null;
+                });
+    }
+
+    // Placeholder metody - do implementacji
+    private void openEditStudentDialog(Student student) {
+        showAlert("Info", "Funkcja edycji studenta będzie dostępna w przyszłej wersji.", Alert.AlertType.INFORMATION);
+    }
+
+    private void openFullStudentManagementWindow() {
+        showAlert("Info", "Pełny panel zarządzania studentami będzie dostępny w przyszłej wersji.", Alert.AlertType.INFORMATION);
+    }
+
+    // === KOMÓRKA LISTY OSTATNICH STUDENTÓW ===
+    private class RecentStudentListCell extends ListCell<Student> {
+        @Override
+        protected void updateItem(Student student, boolean empty) {
+            super.updateItem(student, empty);
+            if (empty || student == null) {
+                setGraphic(null);
+                setText(null);
+            } else {
+                VBox content = new VBox(2);
+
+                Label nameLabel = new Label("👤 " + student.getFullName());
+                nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #DC143C;");
+
+                Label detailsLabel = new Label("🆔 " + student.getIndexNumber() +
+                        " | 🏫 " + (student.getGroupName() != null ? student.getGroupName() : "Brak grupy"));
+                detailsLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #6C757D;");
+
+                content.getChildren().addAll(nameLabel, detailsLabel);
+                setGraphic(content);
+                setText(null);
+            }
+        }
+    }
+
+    // ========== KONIEC NOWYCH METOD ==========
 
     @FXML
     protected void onAddGroupClick() {
@@ -181,24 +580,30 @@ public class ModernController {
                 deleteGroupButton.setDisable(true);
                 deleteGroupButton.setText("Usuwanie...");
 
-                // WYSŁANIE ŻĄDANIA USUNIĘCIA NA SERWER
-                groupService.deleteGroupAsync(selectedGroup.getName()) // używamy nazwy jako ID
+                // ========== ZMIENIONA LOGIKA USUWANIA ==========
+                // Najpierw usuń lokalnie, potem spróbuj usunąć z serwera
+                groups.remove(selectedGroup);
+                updateGroupCount();
+                animateButton(deleteGroupButton);
+
+                // WYSŁANIE ŻĄDANIA USUNIĘCIA NA SERWER (asynchronicznie w tle)
+                groupService.deleteGroupAsync(selectedGroup.getName())
                         .thenAccept(success -> {
                             javafx.application.Platform.runLater(() -> {
                                 deleteGroupButton.setDisable(false);
                                 deleteGroupButton.setText("Usuń grupę");
 
                                 if (success) {
-                                    // Sukces - usuń lokalnie
-                                    groups.remove(selectedGroup);
-                                    animateButton(deleteGroupButton);
-                                    updateGroupCount();
-
-                                    showAlert("Usunięto", "Grupa '" + selectedGroup.getName() +
-                                            "' została usunięta z serwera.", Alert.AlertType.INFORMATION);
+                                    // Sukces - grupa już usunięta lokalnie
+                                    showAlert("Sukces",
+                                            "Grupa '" + selectedGroup.getName() + "' została usunięta z serwera.",
+                                            Alert.AlertType.INFORMATION);
                                 } else {
-                                    showAlert("Błąd", "Nie udało się usunąć grupy z serwera.",
-                                            Alert.AlertType.ERROR);
+                                    // Błąd serwera - ale grupa już usunięta lokalnie
+                                    showAlert("Ostrzeżenie",
+                                            "Grupa '" + selectedGroup.getName() + "' została usunięta lokalnie, " +
+                                                    "ale może nadal istnieć na serwerze. Odśwież listę aby sprawdzić.",
+                                            Alert.AlertType.WARNING);
                                 }
                             });
                         })
@@ -207,20 +612,74 @@ public class ModernController {
                                 deleteGroupButton.setDisable(false);
                                 deleteGroupButton.setText("Usuń grupę");
 
-                                // Usuń lokalnie mimo błędu serwera + ostrzeżenie
-                                groups.remove(selectedGroup);
-                                animateButton(deleteGroupButton);
-                                updateGroupCount();
-
+                                // Grupa już usunięta lokalnie - tylko ostrzeżenie
                                 showAlert("Ostrzeżenie",
-                                        "Grupa '" + selectedGroup.getName() +
-                                                "' została usunięta lokalnie, ale nie udało się usunąć z serwera:\n" +
-                                                throwable.getMessage(), Alert.AlertType.WARNING);
+                                        "Grupa '" + selectedGroup.getName() + "' została usunięta lokalnie, " +
+                                                "ale wystąpił problem z serwerem:\n" + throwable.getMessage() +
+                                                "\n\nOdśwież listę aby sprawdzić stan na serwerze.",
+                                        Alert.AlertType.WARNING);
                             });
                             return null;
                         });
             }
         }
+    }
+
+// ========================================================================
+// POPRAWKA 2: Dodaj metodę diagnostyczną do sprawdzania API grup
+// Dodaj tę metodę do ModernController.java:
+
+    @FXML
+    protected void onDiagnoseGroupAPI() {
+        System.out.println("=== DIAGNOSTYKA API GRUP ===");
+
+        // Test 1: Sprawdź połączenie
+        groupService.checkServerConnection()
+                .thenAccept(isConnected -> {
+                    System.out.println("Połączenie z serwerem: " + (isConnected ? "OK" : "BŁĄD"));
+
+                    if (isConnected) {
+                        // Test 2: Sprawdź listę grup
+                        groupService.getAllGroupsAsync()
+                                .thenAccept(serverGroups -> {
+                                    System.out.println("Liczba grup na serwerze: " + serverGroups.size());
+
+                                    for (Group group : serverGroups) {
+                                        System.out.println("- Grupa: " + group.getName() + " (" + group.getSpecialization() + ")");
+
+                                        // Test 3: Sprawdź czy możemy usunąć konkretną grupę
+                                        testGroupDeletion(group.getName());
+                                    }
+                                })
+                                .exceptionally(listThrowable -> {
+                                    System.err.println("BŁĄD pobierania listy grup: " + listThrowable.getMessage());
+                                    return null;
+                                });
+                    }
+                })
+                .exceptionally(connectionThrowable -> {
+                    System.err.println("BŁĄD połączenia z serwerem: " + connectionThrowable.getMessage());
+                    return null;
+                });
+    }
+
+    private void testGroupDeletion(String groupName) {
+        System.out.println("Testowanie usuwania grupy: " + groupName);
+
+        groupService.deleteGroupAsync(groupName)
+                .thenAccept(success -> {
+                    System.out.println("Test usuwania grupy '" + groupName + "': " + (success ? "SUKCES" : "NIEPOWODZENIE"));
+                })
+                .exceptionally(throwable -> {
+                    System.err.println("BŁĄD testowania usuwania grupy '" + groupName + "': " + throwable.getMessage());
+
+                    // Wyświetl szczegóły błędu
+                    if (throwable.getCause() != null) {
+                        System.err.println("Przyczyna: " + throwable.getCause().getMessage());
+                    }
+
+                    return null;
+                });
     }
 
     @FXML
@@ -282,6 +741,10 @@ public class ModernController {
 
                         // DODANE - Odśwież liczbę studentów
                         loadStudentCountFromServer();
+                        // ========== DODANE - ODŚWIEŻ RÓWNIEŻ NOWE LISTY ==========
+                        loadAllStudentsCount();
+                        loadRecentStudents();
+                        // =========================================================
 
                         showAlert("Sukces",
                                 "Student " + newStudent.getFullName() + " został dodany na serwer!" +
@@ -508,5 +971,35 @@ public class ModernController {
                 setText(null);
             }
         }
+    }
+    @FXML
+    protected void onTestEndpoints() {
+        if (groups.isEmpty()) {
+            showAlert("Info", "Najpierw dodaj jakąś grupę do przetestowania endpointów.",
+                    Alert.AlertType.INFORMATION);
+            return;
+        }
+
+        Group firstGroup = groups.get(0);
+        System.out.println("=== TESTOWANIE ENDPOINTÓW DLA GRUPY: " + firstGroup.getName() + " ===");
+
+        groupService.checkAvailableEndpoints(firstGroup.getName())
+                .thenAccept(results -> {
+                    javafx.application.Platform.runLater(() -> {
+                        System.out.println("=== WYNIKI TESTÓW ENDPOINTÓW ===");
+                        System.out.println(results);
+
+                        showAlert("Wyniki testów",
+                                "Sprawdź konsolę - wyświetlono wyniki testów wszystkich endpointów.\n\n" +
+                                        "Szukaj linii z ⭐ POTENCJALNIE DZIAŁAJĄCY ENDPOINT",
+                                Alert.AlertType.INFORMATION);
+                    });
+                })
+                .exceptionally(throwable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        System.err.println("Błąd testowania endpointów: " + throwable.getMessage());
+                    });
+                    return null;
+                });
     }
 }

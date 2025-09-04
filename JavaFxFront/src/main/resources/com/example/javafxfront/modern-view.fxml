@@ -130,6 +130,85 @@
                                 styleClass="primary-button" text="Dodaj studenta" maxWidth="Infinity" />
                     </VBox>
 
+                    <!-- ========== NOWA KARTA - ZARZĄDZANIE STUDENTAMI ========== -->
+                    <!-- Student Management Card -->
+                    <VBox fx:id="studentManagementCard" alignment="TOP_CENTER" spacing="20.0" styleClass="main-card" maxWidth="350.0" minWidth="300.0">
+                        <padding>
+                            <Insets bottom="25.0" left="25.0" right="25.0" top="25.0" />
+                        </padding>
+
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <Label styleClass="card-title" text="Zarządzaj studentami">
+                                <font>
+                                    <Font name="System Bold" size="16.0" />
+                                </font>
+                            </Label>
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button fx:id="refreshAllStudentsButton" mnemonicParsing="false" onAction="#onRefreshAllStudentsClick"
+                                    styleClass="secondary-button" text="🔄" />
+                        </HBox>
+
+                        <!-- Licznik wszystkich studentów -->
+                        <Label fx:id="allStudentsCountLabel" styleClass="count-label" text="Ładowanie studentów...">
+                            <font>
+                                <Font size="10.0" />
+                            </font>
+                        </Label>
+
+                        <!-- Sekcja wyszukiwania studenta -->
+                        <VBox spacing="10.0" styleClass="form-container">
+                            <VBox spacing="5.0">
+                                <Label styleClass="field-label" text="Znajdź studenta po numerze indeksu:">
+                                    <font>
+                                        <Font name="System Bold" size="11.0" />
+                                    </font>
+                                </Label>
+                                <TextField fx:id="searchStudentField" promptText="Wpisz nr indeksu (6 cyfr)" styleClass="modern-field" />
+                            </VBox>
+
+                            <Button fx:id="searchStudentButton" mnemonicParsing="false" onAction="#onSearchStudentClick"
+                                    styleClass="secondary-button" text="🔍 Znajdź studenta" maxWidth="Infinity" />
+                        </VBox>
+
+                        <!-- Informacje o znalezionym studencie -->
+                        <VBox fx:id="foundStudentInfo" spacing="10.0" styleClass="info-note" visible="false" managed="false">
+                            <Label fx:id="foundStudentNameLabel" styleClass="field-label" text="" />
+                            <Label fx:id="foundStudentGroupLabel" styleClass="field-label" text="" />
+                            <Label fx:id="foundStudentDateLabel" styleClass="field-label" text="" />
+
+                            <!-- Przyciski akcji dla znalezionego studenta -->
+                            <HBox spacing="10.0" alignment="CENTER">
+                                <Button fx:id="editFoundStudentButton" mnemonicParsing="false" onAction="#onEditFoundStudentClick"
+                                        styleClass="secondary-button" text="✏️ Edytuj" />
+                                <Button fx:id="removeFoundStudentButton" mnemonicParsing="false" onAction="#onRemoveFoundStudentClick"
+                                        styleClass="danger-button" text="🗑️ Usuń" />
+                            </HBox>
+                        </VBox>
+
+                        <!-- Lista ostatnio dodanych studentów -->
+                        <Separator />
+                        <VBox spacing="8.0">
+                            <Label styleClass="field-label" text="Ostatnio dodani studenci:">
+                                <font>
+                                    <Font name="System Bold" size="11.0" />
+                                </font>
+                            </Label>
+
+                            <ListView fx:id="recentStudentsListView" styleClass="modern-list"
+                                      maxHeight="120.0" minHeight="80.0" />
+
+                            <Button fx:id="manageAllStudentsButton" mnemonicParsing="false" onAction="#onManageAllStudentsClick"
+                                    styleClass="primary-button" text="📋 Zarządzaj wszystkimi" maxWidth="Infinity" />
+                        </VBox>
+
+                        <Label styleClass="info-note" text="Użyj wyszukiwania aby znaleźć konkretnego studenta lub otwórz pełny panel zarządzania.">
+                            <font>
+                                <Font size="9.0" />
+                            </font>
+                        </Label>
+                    </VBox>
+                    <!-- ========== KONIEC NOWEJ KARTY ========== -->
+
                     <!-- Groups List Card -->
                     <VBox fx:id="groupsCard" alignment="TOP_CENTER" spacing="20.0" styleClass="main-card"
                           maxWidth="400.0" minWidth="350.0" VBox.vgrow="ALWAYS">
@@ -146,6 +225,10 @@
                             <Region HBox.hgrow="ALWAYS" />
                             <Button fx:id="refreshButton" mnemonicParsing="false" onAction="#onRefreshClick"
                                     styleClass="secondary-button" text="Odśwież z serwera" />
+                            <!-- ========== DODANY PRZYCISK DIAGNOSTYKI (POPRAWKA 4) ========== -->
+                            <Button fx:id="diagnoseButton" mnemonicParsing="false" onAction="#onDiagnoseGroupAPI"
+                                    styleClass="secondary-button" text="🔧 Diagnoza API" />
+                            <!-- ============================================================== -->
                             <Label fx:id="groupCountLabel" styleClass="count-label" text="Liczba grup: 0">
                                 <font>
                                     <Font size="11.0" />
@@ -238,7 +321,7 @@
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="Wejdź do grupy, usuń ją lub odśwież listę z serwera"
+                            <Label styleClass="instruction-desc" text="Wejdź do grupy, usuń ją lub odśwież listę z serwera. Użyj 'Diagnoza API' aby sprawdzić problemy."
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -252,12 +335,12 @@
                                     <Font name="System Bold" size="20.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-title" text="Przypisuj studentów">
+                            <Label styleClass="instruction-title" text="Wyszukaj studenta">
                                 <font>
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="W oknie grupy załaduj studentów z serwera i przypisz ich do konkretnej grupy"
+                            <Label styleClass="instruction-desc" text="Użyj nowej karty 'Zarządzaj studentami' aby wyszukać konkretnego studenta po numerze indeksu"
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -271,12 +354,12 @@
                                     <Font name="System Bold" size="20.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-title" text="Zarządzaj terminami">
+                            <Label styleClass="instruction-title" text="Usuń z dodatkowymi polami">
                                 <font>
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="W oknie grupy twórz terminy i synchronizuj je z serwerem. Odświeżaj dane z serwera."
+                            <Label styleClass="instruction-desc" text="Po znalezieniu studenta użyj przycisku 'Usuń' aby otworzyć dialog z powodami i uwagami"
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -290,12 +373,12 @@
                                     <Font name="System Bold" size="20.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-title" text="Synchronizacja">
+                            <Label styleClass="instruction-title" text="Diagnoza problemów">
                                 <font>
                                     <Font name="System Bold" size="14.0" />
                                 </font>
                             </Label>
-                            <Label styleClass="instruction-desc" text="Wszystkie operacje są synchronizowane z serwerem. Używaj przycisków odświeżania."
+                            <Label styleClass="instruction-desc" text="Użyj przycisku 'Diagnoza API' aby sprawdzić połączenie z serwerem i zdiagnozować problemy z usuwaniem grup"
                                    textAlignment="CENTER" wrapText="true">
                                 <font>
                                     <Font size="12.0" />
@@ -314,7 +397,7 @@
             <padding>
                 <Insets bottom="15.0" left="20.0" right="20.0" top="15.0" />
             </padding>
-            <Label styleClass="footer-text" text="Dziennik Online • System zarządzania grupami • 2024 • Synchronizacja z serwerem">
+            <Label styleClass="footer-text" text="Dziennik Online • System zarządzania grupami • 2024 • Synchronizacja z serwerem • Zaawansowane zarządzanie studentami • Diagnostyka API">
                 <font>
                     <Font size="12.0" />
                 </font>
