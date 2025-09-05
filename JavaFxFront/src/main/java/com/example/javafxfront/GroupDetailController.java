@@ -20,6 +20,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
+
 public class GroupDetailController {
     @FXML private Label groupNameLabel;
     @FXML private Label groupSpecializationLabel;
@@ -191,16 +194,56 @@ public class GroupDetailController {
     }
 
     private void loadStudentsFromServer() {
+        if (currentGroup == null) {
+            System.err.println("❌ Brak currentGroup - nie można załadować studentów");
+            return;
+        }
+
+        System.out.println("🔄 ŁADOWANIE STUDENTÓW dla grupy: '" + currentGroup.getName() + "'");
+
         studentService.getStudentsByGroupAsync(currentGroup.getName())
                 .thenAccept(serverStudents -> {
                     javafx.application.Platform.runLater(() -> {
+                        System.out.println("📥 Otrzymano " + serverStudents.size() + " studentów z serwera dla grupy: " + currentGroup.getName());
+
+                        // Debug - wypisz szczegóły wszystkich studentów
+                        System.out.println("=== LISTA STUDENTÓW Z SERWERA ===");
+                        for (int i = 0; i < serverStudents.size(); i++) {
+                            Student student = serverStudents.get(i);
+                            System.out.println((i + 1) + ". " + student.getFullName() +
+                                    " (index: " + student.getIndexNumber() +
+                                    ", grupa: '" + student.getGroupName() + "')");
+                        }
+                        System.out.println("================================");
+
+                        // Wyczyść starą listę
+                        int oldSize = students.size();
                         students.clear();
+                        System.out.println("🗑️ Wyczyszczono " + oldSize + " starych studentów z listy");
+
+                        // Dodaj nowych studentów
                         students.addAll(serverStudents);
+                        System.out.println("➕ Dodano " + serverStudents.size() + " nowych studentów do listy");
+
+                        // Wymuś odświeżenie ListView
+                        studentsListView.refresh();
+                        System.out.println("🔄 Wymuszone odświeżenie ListView");
+
                         updateCounts();
+
+                        if (serverStudents.isEmpty()) {
+                            System.out.println("⚠️ UWAGA: Brak studentów w grupie '" + currentGroup.getName() + "'");
+                            System.out.println("💡 Sprawdź czy studenci są rzeczywiście przypisani do tej grupy w bazie");
+                        } else {
+                            System.out.println("✅ Pomyślnie załadowano " + serverStudents.size() + " studentów dla grupy '" + currentGroup.getName() + "'");
+                        }
                     });
                 })
                 .exceptionally(throwable -> {
                     javafx.application.Platform.runLater(() -> {
+                        System.err.println("❌ Błąd ładowania studentów dla grupy '" + currentGroup.getName() + "': " + throwable.getMessage());
+                        throwable.printStackTrace();
+
                         showAlert("Ostrzeżenie",
                                 "Nie udało się załadować studentów z serwera:\n" + throwable.getMessage(),
                                 Alert.AlertType.WARNING);
@@ -435,38 +478,71 @@ public class GroupDetailController {
      * Aktualizuje grupę studenta na serwerze
      */
     private void updateStudentGroup(Student student, String studentDisplayName) {
+        System.out.println("🔄 ROZPOCZYNAM aktualizację grupy dla studenta: " + studentDisplayName);
+        System.out.println("📋 Nowa grupa: '" + student.getGroupName() + "'");
+
         studentService.updateStudentAsync(student.getIndexNumber(), student)
                 .thenAccept(updatedStudent -> {
                     javafx.application.Platform.runLater(() -> {
+                        addStudentButton.setDisable(false);
+                        addStudentButton.setText("Dodaj studenta");
+
+                        System.out.println("✅ Student zaktualizowany na serwerze: " + studentDisplayName);
+
+                        // Dodaj studenta do lokalnej listy
                         students.add(student);
+                        System.out.println("➕ Dodano studenta do lokalnej listy");
+
                         animateButton(addStudentButton);
                         clearStudentForm();
                         updateCounts();
 
+                        // 🔧 KLUCZOWE: Automatyczne odświeżenie z serwera po 1 sekundzie
+                        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(1));
+                        pause.setOnFinished(e -> {
+                            System.out.println("🔄 Auto-odświeżanie listy studentów po przypisaniu...");
+                            loadStudentsFromServer();
+                        });
+                        pause.play();
+
                         showAlert("Sukces", "Student " + studentDisplayName +
-                                        " został przypisany do grupy " + currentGroup.getName() + "!",
+                                        " został przypisany do grupy " + currentGroup.getName() + "!" +
+                                        "\n\nLista zostanie automatycznie odświeżona.",
                                 Alert.AlertType.INFORMATION);
                     });
                 })
                 .exceptionally(updateThrowable -> {
                     javafx.application.Platform.runLater(() -> {
-                        // Dodaj lokalnie mimo błędu
+                        addStudentButton.setDisable(false);
+                        addStudentButton.setText("Dodaj studenta");
+
+                        System.err.println("❌ Błąd aktualizacji studenta: " + updateThrowable.getMessage());
+
+                        // Mimo błędu, dodaj lokalnie i spróbuj odświeżyć
                         students.add(student);
                         animateButton(addStudentButton);
                         clearStudentForm();
                         updateCounts();
 
+                        // Spróbuj odświeżyć z serwera
+                        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
+                        pause.setOnFinished(e -> {
+                            System.out.println("🔄 Auto-odświeżanie po błędzie...");
+                            loadStudentsFromServer();
+                        });
+                        pause.play();
+
                         showAlert("Ostrzeżenie",
                                 "Student " + studentDisplayName +
                                         " został dodany lokalnie do grupy " + currentGroup.getName() +
                                         ", ale nie udało się zaktualizować na serwerze:\n" +
-                                        updateThrowable.getMessage(),
+                                        updateThrowable.getMessage() +
+                                        "\n\nSpróbuję odświeżyć listę z serwera...",
                                 Alert.AlertType.WARNING);
                     });
                     return null;
                 });
     }
-
     @FXML
     protected void onAddStudentClick() {
         String firstName = firstNameField.getText().trim();
@@ -1446,5 +1522,69 @@ import javafx.scene.control.TextArea;
                 setText(null);
             }
         }
+    }
+
+    @FXML
+    protected void onForceRefreshStudentsClick() {
+        System.out.println("🔄 WYMUSZONE ODŚWIEŻENIE przez użytkownika");
+
+        if (refreshStudentsButton != null) {
+            refreshStudentsButton.setText("Odświeżam...");
+            refreshStudentsButton.setDisable(true);
+        }
+
+        loadStudentsFromServer();
+
+        // Przywróć przycisk po 2 sekundach
+        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
+        pause.setOnFinished(e -> {
+            if (refreshStudentsButton != null) {
+                refreshStudentsButton.setText("🔄 Odśwież z serwera");
+                refreshStudentsButton.setDisable(false);
+            }
+        });
+        pause.play();
+    }
+
+    // Dodaj też metodę sprawdzania stanu bazy danych
+    @FXML
+    protected void onCheckDatabaseClick() {
+        System.out.println("🔍 SPRAWDZANIE STANU BAZY DANYCH");
+
+        // Sprawdź wszystkich studentów
+        studentService.getAllStudentsAsync()
+                .thenAccept(allStudents -> {
+                    javafx.application.Platform.runLater(() -> {
+                        System.out.println("=== WSZYSCY STUDENCI W BAZIE ===");
+                        for (Student student : allStudents) {
+                            System.out.println("- " + student.getFullName() +
+                                    " (grupa: '" + student.getGroupName() + "')");
+                        }
+
+                        // Filtruj studentów dla bieżącej grupy
+                        long studentsInCurrentGroup = allStudents.stream()
+                                .filter(s -> s.getGroupName() != null && s.getGroupName().equals(currentGroup.getName()))
+                                .count();
+
+                        System.out.println("==============================");
+                        System.out.println("📊 Studentów w grupie '" + currentGroup.getName() + "': " + studentsInCurrentGroup);
+                        System.out.println("📊 Studentów w lokalnej liście: " + students.size());
+
+                        showAlert("Info z bazy danych",
+                                "Wszystkich studentów w bazie: " + allStudents.size() +
+                                        "\nStudentów w grupie '" + currentGroup.getName() + "': " + studentsInCurrentGroup +
+                                        "\nStudentów w lokalnej liście: " + students.size() +
+                                        "\n\nSzczegóły w konsoli.",
+                                Alert.AlertType.INFORMATION);
+                    });
+                })
+                .exceptionally(throwable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        System.err.println("❌ Błąd sprawdzania bazy: " + throwable.getMessage());
+                        showAlert("Błąd", "Nie można sprawdzić stanu bazy: " + throwable.getMessage(),
+                                Alert.AlertType.ERROR);
+                    });
+                    return null;
+                });
     }
 }

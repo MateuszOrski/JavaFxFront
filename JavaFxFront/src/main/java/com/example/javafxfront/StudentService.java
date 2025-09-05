@@ -64,6 +64,8 @@ public class StudentService {
             try {
                 String url = STUDENTS_ENDPOINT + "/group/" + java.net.URLEncoder.encode(groupName, "UTF-8");
 
+                System.out.println("🔗 Wywołuję URL: " + url); // DEBUG
+
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .header("Content-Type", "application/json")
@@ -75,13 +77,20 @@ public class StudentService {
                 HttpResponse<String> response = httpClient.send(request,
                         HttpResponse.BodyHandlers.ofString());
 
+                System.out.println("📡 Status odpowiedzi: " + response.statusCode()); // DEBUG
+                System.out.println("📄 Treść odpowiedzi: " + response.body()); // DEBUG
+
                 if (response.statusCode() == 200) {
-                    return parseStudentsFromJson(response.body());
+                    List<Student> students = parseStudentsFromJson(response.body());
+                    System.out.println("✅ Sparsowano " + students.size() + " studentów"); // DEBUG
+                    return students;
                 } else {
-                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
+                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode() +
+                            ". Treść: " + response.body());
                 }
 
             } catch (Exception e) {
+                System.err.println("❌ Błąd getStudentsByGroupAsync: " + e.getMessage()); // DEBUG
                 throw new RuntimeException("Nie udalo sie pobrac studentow grupy z serwera: " + e.getMessage(), e);
             }
         });
@@ -119,6 +128,7 @@ public class StudentService {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 String jsonBody = studentToJson(student);
+                System.out.println("📤 Wysyłam JSON: " + jsonBody); // DEBUG
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(STUDENTS_ENDPOINT))
@@ -173,7 +183,8 @@ public class StudentService {
     public CompletableFuture<Student> updateStudentAsync(String indexNumber, Student student) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String jsonBody = studentToJson(student);
+                String jsonBody = studentToJsonForUpdate(student);
+                System.out.println("🔄 Aktualizuję studenta " + indexNumber + " JSON: " + jsonBody); // DEBUG
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(STUDENTS_ENDPOINT + "/" + indexNumber))
@@ -186,16 +197,46 @@ public class StudentService {
                 HttpResponse<String> response = httpClient.send(request,
                         HttpResponse.BodyHandlers.ofString());
 
+                System.out.println("📡 Update status: " + response.statusCode()); // DEBUG
+                System.out.println("📄 Update response: " + response.body()); // DEBUG
+
                 if (response.statusCode() == 200) {
                     return parseStudentFromJson(response.body());
                 } else {
-                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
+                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode() +
+                            ". Treść: " + response.body());
                 }
 
             } catch (Exception e) {
+                System.err.println("❌ Błąd updateStudentAsync: " + e.getMessage()); // DEBUG
                 throw new RuntimeException("Nie udalo sie zaktualizowac studenta na serwerze: " + e.getMessage(), e);
             }
         });
+    }
+
+    // NOWA METODA - Specjalna konwersja dla aktualizacji z nazwą grupy
+    private String studentToJsonForUpdate(Student student) {
+        try {
+            // Tworzymy JSON który backend może zrozumieć
+            StringBuilder json = new StringBuilder();
+            json.append("{");
+            json.append("\"firstName\":\"").append(escapeJson(student.getFirstName())).append("\",");
+            json.append("\"lastName\":\"").append(escapeJson(student.getLastName())).append("\",");
+            json.append("\"indexNumber\":\"").append(escapeJson(student.getIndexNumber())).append("\"");
+
+            // KLUCZOWE: Jeśli student ma grupę, dodaj ją jako obiekt Group
+            if (student.getGroupName() != null && !student.getGroupName().trim().isEmpty()) {
+                json.append(",\"group\":{\"name\":\"").append(escapeJson(student.getGroupName())).append("\"}");
+            } else {
+                json.append(",\"group\":null");
+            }
+
+            json.append("}");
+            return json.toString();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert student to JSON for update: " + e.getMessage(), e);
+        }
     }
 
     // === METODY PRYWATNE DO PARSOWANIA JSON ===
@@ -239,12 +280,29 @@ public class StudentService {
     private Student convertToStudent(StudentFromServer serverStudent) {
         String groupName = null;
         if (serverStudent.group != null) {
-            groupName = serverStudent.group.name;
+            groupName = serverStudent.group.name; // Pobierz nazwę z obiektu grupy
         }
 
         Student student = new Student(serverStudent.firstName, serverStudent.lastName,
                 serverStudent.indexNumber, groupName);
+
+        // DEBUG - pokaż co zostało sparsowane
+        System.out.println("🔄 Sparsowano studenta: " + student.getFullName() +
+                " (grupa: " + (groupName != null ? groupName : "BRAK") + ")");
+
         return student;
+    }
+
+    /**
+     * DODANA BRAKUJĄCA METODA - Escape'owanie stringów w JSON
+     */
+    private String escapeJson(String str) {
+        if (str == null) return "";
+        return str.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     // === KLASY POMOCNICZE - BEZ EMAIL ===
@@ -254,8 +312,6 @@ public class StudentService {
         public String firstName;
         public String lastName;
         public String indexNumber;
-        // USUNIĘTE POLE EMAIL
-        public String fullName;
         public LocalDateTime createdDate;
         public Boolean active;
         public GroupInfo group;
@@ -280,4 +336,5 @@ public class StudentService {
             super(message);
         }
     }
+
 }
