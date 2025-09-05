@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.Optional;
 
 public class StudentService {
 
@@ -214,6 +215,44 @@ public class StudentService {
         });
     }
 
+    public CompletableFuture<Student> removeStudentFromGroupAsync(String indexNumber) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                String url = STUDENTS_ENDPOINT + "/remove-from-group/" + java.net.URLEncoder.encode(indexNumber, "UTF-8");
+
+                System.out.println("🔗 Wywołuję URL usuwania z grupy: " + url); // DEBUG
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "application/json")
+                        .timeout(Duration.ofSeconds(30))
+                        .PUT(HttpRequest.BodyPublishers.ofString("{}"))  // Pusty body dla PUT
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request,
+                        HttpResponse.BodyHandlers.ofString());
+
+                System.out.println("📡 Status odpowiedzi usuwania z grupy: " + response.statusCode()); // DEBUG
+                System.out.println("📄 Treść odpowiedzi: " + response.body()); // DEBUG
+
+                if (response.statusCode() == 200) {
+                    Student updatedStudent = parseStudentFromJson(response.body());
+                    System.out.println("✅ Student usunięty z grupy: " + updatedStudent.getFullName() +
+                            " (grupa: " + (updatedStudent.getGroupName() != null ? updatedStudent.getGroupName() : "BRAK") + ")");
+                    return updatedStudent;
+                } else {
+                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode() +
+                            ". Treść: " + response.body());
+                }
+
+            } catch (Exception e) {
+                System.err.println("❌ Błąd removeStudentFromGroupAsync: " + e.getMessage()); // DEBUG
+                throw new RuntimeException("Nie udalo sie usunac studenta z grupy na serwerze: " + e.getMessage(), e);
+            }
+        });
+    }
+
     // NOWA METODA - Specjalna konwersja dla aktualizacji z nazwą grupy
     private String studentToJsonForUpdate(Student student) {
         try {
@@ -293,6 +332,9 @@ public class StudentService {
         return student;
     }
 
+
+
+
     /**
      * DODANA BRAKUJĄCA METODA - Escape'owanie stringów w JSON
      */
@@ -334,6 +376,35 @@ public class StudentService {
     public static class StudentAlreadyExistsException extends RuntimeException {
         public StudentAlreadyExistsException(String message) {
             super(message);
+        }
+    }
+
+    public Student removeStudentFromGroup(String indexNumber) {
+        System.out.println("=== STUDENT SERVICE: removeStudentFromGroup ===");
+        System.out.println("🔍 Szukam studenta o indeksie: " + indexNumber);
+
+        Optional<Student> studentOpt = studentRepository.findByIndexNumber(indexNumber);
+
+        if (studentOpt.isPresent()) {
+            Student student = studentOpt.get();
+            String previousGroup = student.getGroup() != null ? student.getGroup().getName() : "BRAK";
+
+            System.out.println("📋 Znaleziono studenta: " + student.getFullName());
+            System.out.println("📋 Aktualna grupa: " + previousGroup);
+
+            // KLUCZOWE: Usuń przypisanie do grupy
+            student.setGroup(null);
+
+            // Zapisz zmiany w bazie danych
+            Student updatedStudent = studentRepository.save(student);
+
+            System.out.println("✅ Student " + updatedStudent.getFullName() + " został usunięty z grupy: " + previousGroup);
+            System.out.println("✅ Nowy status grupy: " + (updatedStudent.getGroup() != null ? updatedStudent.getGroup().getName() : "BRAK"));
+
+            return updatedStudent;
+        } else {
+            System.err.println("❌ Student o indeksie " + indexNumber + " nie został znaleziony w bazie");
+            throw new RuntimeException("Student not found with index: " + indexNumber);
         }
     }
 
