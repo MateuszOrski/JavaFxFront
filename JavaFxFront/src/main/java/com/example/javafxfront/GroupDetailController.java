@@ -1035,18 +1035,18 @@ public class GroupDetailController {
     protected void onRemoveStudentClick() {
         Student selectedStudent = studentsListView.getSelectionModel().getSelectedItem();
         if (selectedStudent != null) {
-            // Tworzymy custom dialog z dodatkowym polem
+            // Tworzymy dialog dla USUWANIA Z GRUPY (nie z systemu!)
             Dialog<ButtonType> confirmDialog = new Dialog<>();
-            confirmDialog.setTitle("Potwierdzenie usunięcia studenta");
-            confirmDialog.setHeaderText("Czy na pewno chcesz usunąć studenta " + selectedStudent.getFullName() + "?");
+            confirmDialog.setTitle("Usuwanie studenta z grupy");
+            confirmDialog.setHeaderText("Czy na pewno chcesz usunąć studenta " + selectedStudent.getFullName() + " z grupy " + currentGroup.getName() + "?");
 
             // Ikona ostrzeżenia
             confirmDialog.setGraphic(new javafx.scene.control.Label("⚠️"));
 
-            // Buttons
-            ButtonType removeButtonType = new ButtonType("Usuń studenta", ButtonBar.ButtonData.OK_DONE);
+            // Buttons - ZMIENIONE nazwy przycisków
+            ButtonType removeFromGroupButtonType = new ButtonType("Usuń z grupy", ButtonBar.ButtonData.OK_DONE);
             ButtonType cancelButtonType = new ButtonType("Anuluj", ButtonBar.ButtonData.CANCEL_CLOSE);
-            confirmDialog.getDialogPane().getButtonTypes().addAll(removeButtonType, cancelButtonType);
+            confirmDialog.getDialogPane().getButtonTypes().addAll(removeFromGroupButtonType, cancelButtonType);
 
             // Tworzenie content z dodatkowymi polami
             VBox content = new VBox(15);
@@ -1068,26 +1068,28 @@ public class GroupDetailController {
             Label studentIndexLabel = new Label("Nr indeksu: " + selectedStudent.getIndexNumber());
             studentIndexLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #212529;");
 
-            Label studentGroupLabel = new Label("Grupa: " + (selectedStudent.getGroupName() != null ? selectedStudent.getGroupName() : "Brak"));
-            studentGroupLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #212529;");
+            Label currentGroupLabel = new Label("Obecna grupa: " + currentGroup.getName());
+            currentGroupLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #212529;");
 
-            studentInfo.getChildren().addAll(studentNameLabel, studentIndexLabel, studentGroupLabel);
+            Label actionLabel = new Label("Po usunięciu: Bez grupy (dostępny do przypisania)");
+            actionLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #38A169; -fx-font-weight: bold;");
 
-            // Dodatkowe pole - Powód usunięcia
+            studentInfo.getChildren().addAll(studentNameLabel, studentIndexLabel, currentGroupLabel, actionLabel);
+
+            // Dodatkowe pole - Powód usunięcia z grupy
             VBox reasonSection = new VBox(8);
 
-            Label reasonLabel = new Label("Powód usunięcia (opcjonalne):");
+            Label reasonLabel = new Label("Powód usunięcia z grupy (opcjonalne):");
             reasonLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #212529;");
 
             ComboBox<String> reasonComboBox = new ComboBox<>();
             reasonComboBox.getItems().addAll(
-                    "Rezygnacja ze studiów",
-                    "Przejście do innej grupy",
-                    "Zakończenie studiów",
-                    "Długotrwała nieobecność",
+                    "Przeniesienie do innej grupy",
+                    "Zmiana specjalizacji",
                     "Prośba studenta",
-                    "Decyzja administracyjna",
-                    "Błąd w systemie",
+                    "Reorganizacja grup",
+                    "Błędne przypisanie",
+                    "Tymczasowe usunięcie",
                     "Inne"
             );
             reasonComboBox.setPromptText("Wybierz powód...");
@@ -1103,7 +1105,7 @@ public class GroupDetailController {
             notesLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #212529;");
 
             TextArea notesTextArea = new TextArea();
-            notesTextArea.setPromptText("Wpisz dodatkowe uwagi dotyczące usunięcia studenta...");
+            notesTextArea.setPromptText("Wpisz dodatkowe uwagi dotyczące usunięcia z grupy...");
             notesTextArea.setPrefRowCount(3);
             notesTextArea.setMaxHeight(80);
             notesTextArea.setStyle("-fx-background-color: #F8F9FA; " +
@@ -1116,34 +1118,37 @@ public class GroupDetailController {
             reasonSection.getChildren().addAll(reasonLabel, reasonComboBox, notesLabel, notesTextArea);
 
             // Checkbox dla potwierdzenia
-            CheckBox confirmationCheckBox = new CheckBox("Potwierdzam, że chcę usunąć tego studenta z grupy");
+            CheckBox confirmationCheckBox = new CheckBox("Potwierdzam, że chcę usunąć tego studenta z grupy " + currentGroup.getName());
             confirmationCheckBox.setStyle("-fx-font-size: 12px; -fx-text-fill: #212529; -fx-font-weight: bold;");
 
-            // Ostrzeżenie
-            VBox warningBox = new VBox(5);
-            warningBox.setStyle("-fx-background-color: rgba(229, 62, 62, 0.1); " +
+            // Informacja - co się stanie
+            VBox infoBox = new VBox(5);
+            infoBox.setStyle("-fx-background-color: rgba(56, 161, 105, 0.1); " +
                     "-fx-padding: 12; " +
                     "-fx-background-radius: 8; " +
-                    "-fx-border-color: rgba(229, 62, 62, 0.3); " +
+                    "-fx-border-color: rgba(56, 161, 105, 0.3); " +
                     "-fx-border-width: 1; " +
                     "-fx-border-radius: 8;");
 
-            Label warningTitle = new Label("⚠️ UWAGA:");
-            warningTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #E53E3E;");
+            Label infoTitle = new Label("ℹ️ INFORMACJA:");
+            infoTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #38A169;");
 
-            Label warningText1 = new Label("• Student zostanie usunięty z grupy i wszystkich terminów");
-            warningText1.setStyle("-fx-font-size: 11px; -fx-text-fill: #E53E3E;");
+            Label infoText1 = new Label("• Student zostanie usunięty tylko z tej grupy");
+            infoText1.setStyle("-fx-font-size: 11px; -fx-text-fill: #38A169;");
 
-            Label warningText2 = new Label("• Wszystkie wpisy frekwencji dla tego studenta zostaną utracone");
-            warningText2.setStyle("-fx-font-size: 11px; -fx-text-fill: #E53E3E;");
+            Label infoText2 = new Label("• Student pozostanie w systemie bez przypisanej grupy");
+            infoText2.setStyle("-fx-font-size: 11px; -fx-text-fill: #38A169;");
 
-            Label warningText3 = new Label("• Ta operacja jest nieodwracalna!");
-            warningText3.setStyle("-fx-font-size: 11px; -fx-text-fill: #E53E3E; -fx-font-weight: bold;");
+            Label infoText3 = new Label("• Będzie można go przypisać do innej grupy");
+            infoText3.setStyle("-fx-font-size: 11px; -fx-text-fill: #38A169;");
 
-            warningBox.getChildren().addAll(warningTitle, warningText1, warningText2, warningText3);
+            Label infoText4 = new Label("• Wszystkie wpisy frekwencji dla tego studenta zostaną usunięte");
+            infoText4.setStyle("-fx-font-size: 11px; -fx-text-fill: #F56500; -fx-font-weight: bold;");
+
+            infoBox.getChildren().addAll(infoTitle, infoText1, infoText2, infoText3, infoText4);
 
             // Dodaj wszystko do content
-            content.getChildren().addAll(studentInfo, reasonSection, confirmationCheckBox, warningBox);
+            content.getChildren().addAll(studentInfo, reasonSection, confirmationCheckBox, infoBox);
 
             confirmDialog.getDialogPane().setContent(content);
 
@@ -1152,8 +1157,8 @@ public class GroupDetailController {
                     getClass().getResource("styles.css").toExternalForm());
             confirmDialog.getDialogPane().getStyleClass().add("alert-dialog");
 
-            // Walidacja - przycisk usuń aktywny tylko gdy checkbox zaznaczony
-            javafx.scene.Node removeButton = confirmDialog.getDialogPane().lookupButton(removeButtonType);
+            // Walidacja - przycisk usuń z grupy aktywny tylko gdy checkbox zaznaczony
+            javafx.scene.Node removeButton = confirmDialog.getDialogPane().lookupButton(removeFromGroupButtonType);
             removeButton.setDisable(true);
 
             confirmationCheckBox.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
@@ -1163,35 +1168,120 @@ public class GroupDetailController {
             // Pokaż dialog i przetwórz wynik
             Optional<ButtonType> result = confirmDialog.showAndWait();
 
-            if (result.isPresent() && result.get() == removeButtonType) {
+            if (result.isPresent() && result.get() == removeFromGroupButtonType) {
                 // Zbierz dodatkowe informacje
                 String reason = reasonComboBox.getValue();
                 String notes = notesTextArea.getText().trim();
 
-                // Wyświetl podsumowanie przed usunięciem (opcjonalne)
-                StringBuilder summary = new StringBuilder();
-                summary.append("Usuwanie studenta: ").append(selectedStudent.getFullName()).append("\n");
-                if (reason != null && !reason.isEmpty()) {
-                    summary.append("Powód: ").append(reason).append("\n");
-                }
-                if (!notes.isEmpty()) {
-                    summary.append("Uwagi: ").append(notes).append("\n");
-                }
-                summary.append("\nCzy kontynuować?");
-
-                Alert finalConfirm = new Alert(Alert.AlertType.CONFIRMATION);
-                finalConfirm.setTitle("Ostateczne potwierdzenie");
-                finalConfirm.setHeaderText("Podsumowanie usunięcia");
-                finalConfirm.setContentText(summary.toString());
-
-                Optional<ButtonType> finalResult = finalConfirm.showAndWait();
-                if (finalResult.isPresent() && finalResult.get() == ButtonType.OK) {
-
-                    // *** WŁAŚCIWE USUWANIE STUDENTA ***
-                    performStudentRemoval(selectedStudent, reason, notes);
-                }
+                // KLUCZOWE: Wywołaj metodę usuwania z grupy (NIE całkowite usuwanie!)
+                performStudentRemovalFromGroup(selectedStudent, reason, notes);
             }
         }
+    }
+
+    private void performStudentRemovalFromGroup(Student student, String reason, String notes) {
+        // Logowanie przed usunięciem z grupy
+        logStudentRemovalFromGroup(student, reason, notes);
+
+        System.out.println("🔄 ROZPOCZYNAM usuwanie studenta z grupy (nie z systemu)");
+        System.out.println("📋 Student: " + student.getFullName() + " (indeks: " + student.getIndexNumber() + ")");
+        System.out.println("📋 Grupa: " + currentGroup.getName());
+
+        // KLUCZOWE: Używamy metody removeStudentFromGroupAsync zamiast deleteStudentAsync!
+        studentService.removeStudentFromGroupAsync(student.getIndexNumber())
+                .thenAccept(updatedStudent -> {
+                    javafx.application.Platform.runLater(() -> {
+                        System.out.println("✅ Student usunięty z grupy na serwerze");
+
+                        // Usuń z lokalnej listy tej grupy
+                        students.remove(student);
+
+                        // Usuń studenta ze wszystkich terminów tej grupy (lokalnie i z serwera)
+                        for (ClassSchedule schedule : schedules) {
+                            if (schedule.hasAttendanceForStudent(student)) {
+                                // Usuń z serwera jeśli termin ma ID
+                                if (schedule.getId() != null) {
+                                    attendanceService.removeAttendanceAsync(
+                                            student.getIndexNumber(),
+                                            schedule.getId()
+                                    ).exceptionally(throwable -> {
+                                        System.err.println("Błąd usuwania obecności studenta z serwera: " + throwable.getMessage());
+                                        return null;
+                                    });
+                                }
+                                // Usuń lokalnie
+                                schedule.removeAttendance(student);
+                            }
+                        }
+
+                        refreshSchedulesList();
+                        updateCounts();
+
+                        // Pokaż potwierdzenie
+                        StringBuilder confirmMessage = new StringBuilder();
+                        confirmMessage.append("✅ Student ").append(student.getFullName())
+                                .append(" został usunięty z grupy ").append(currentGroup.getName()).append("!");
+                        if (reason != null && !reason.isEmpty()) {
+                            confirmMessage.append("\n📝 Powód: ").append(reason);
+                        }
+                        if (notes != null && !notes.isEmpty()) {
+                            confirmMessage.append("\n💬 Uwagi: ").append(notes);
+                        }
+                        confirmMessage.append("\n\n🔄 Student pozostaje w systemie bez grupy.");
+                        confirmMessage.append("\n🗑️ Usunięto wszystkie powiązane dane frekwencji z tej grupy.");
+
+                        showAlert("Student usunięty z grupy", confirmMessage.toString(), Alert.AlertType.INFORMATION);
+                    });
+                })
+                .exceptionally(throwable -> {
+                    javafx.application.Platform.runLater(() -> {
+                        System.err.println("❌ Błąd usuwania studenta z grupy: " + throwable.getMessage());
+
+                        // Usuń lokalnie mimo błędu serwera
+                        students.remove(student);
+
+                        // Usuń studenta ze wszystkich terminów (tylko lokalnie)
+                        for (ClassSchedule schedule : schedules) {
+                            schedule.removeAttendance(student);
+                        }
+                        refreshSchedulesList();
+                        updateCounts();
+
+                        StringBuilder warningMessage = new StringBuilder();
+                        warningMessage.append("⚠️ Student ").append(student.getFullName())
+                                .append(" został usunięty z grupy lokalnie,");
+                        warningMessage.append("\nale wystąpił problem z serwerem: ").append(throwable.getMessage());
+                        if (reason != null && !reason.isEmpty()) {
+                            warningMessage.append("\n📝 Powód: ").append(reason);
+                        }
+
+                        showAlert("Ostrzeżenie", warningMessage.toString(), Alert.AlertType.WARNING);
+                    });
+                    return null;
+                });
+    }
+
+
+    private void logStudentRemovalFromGroup(Student student, String reason, String notes) {
+        StringBuilder logEntry = new StringBuilder();
+        logEntry.append("=== USUNIĘCIE STUDENTA Z GRUPY ===\n");
+        logEntry.append("Data: ").append(java.time.LocalDateTime.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))).append("\n");
+        logEntry.append("Student: ").append(student.getFullName()).append("\n");
+        logEntry.append("Nr indeksu: ").append(student.getIndexNumber()).append("\n");
+        logEntry.append("Grupa: ").append(currentGroup.getName()).append("\n");
+        logEntry.append("Akcja: USUNIĘCIE Z GRUPY (nie z systemu)").append("\n");
+
+        if (reason != null && !reason.isEmpty()) {
+            logEntry.append("Powód: ").append(reason).append("\n");
+        }
+        if (notes != null && !notes.isEmpty()) {
+            logEntry.append("Uwagi: ").append(notes).append("\n");
+        }
+        logEntry.append("================================\n");
+
+        // Wyświetl w konsoli
+        System.out.println(logEntry.toString());
     }
 
     /**

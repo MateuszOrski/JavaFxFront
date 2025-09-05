@@ -14,7 +14,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.Optional;
 
 public class StudentService {
 
@@ -332,9 +331,6 @@ public class StudentService {
         return student;
     }
 
-
-
-
     /**
      * DODANA BRAKUJĄCA METODA - Escape'owanie stringów w JSON
      */
@@ -379,33 +375,5 @@ public class StudentService {
         }
     }
 
-    public Student removeStudentFromGroup(String indexNumber) {
-        System.out.println("=== STUDENT SERVICE: removeStudentFromGroup ===");
-        System.out.println("🔍 Szukam studenta o indeksie: " + indexNumber);
-
-        Optional<Student> studentOpt = studentRepository.findByIndexNumber(indexNumber);
-
-        if (studentOpt.isPresent()) {
-            Student student = studentOpt.get();
-            String previousGroup = student.getGroup() != null ? student.getGroup().getName() : "BRAK";
-
-            System.out.println("📋 Znaleziono studenta: " + student.getFullName());
-            System.out.println("📋 Aktualna grupa: " + previousGroup);
-
-            // KLUCZOWE: Usuń przypisanie do grupy
-            student.setGroup(null);
-
-            // Zapisz zmiany w bazie danych
-            Student updatedStudent = studentRepository.save(student);
-
-            System.out.println("✅ Student " + updatedStudent.getFullName() + " został usunięty z grupy: " + previousGroup);
-            System.out.println("✅ Nowy status grupy: " + (updatedStudent.getGroup() != null ? updatedStudent.getGroup().getName() : "BRAK"));
-
-            return updatedStudent;
-        } else {
-            System.err.println("❌ Student o indeksie " + indexNumber + " nie został znaleziony w bazie");
-            throw new RuntimeException("Student not found with index: " + indexNumber);
-        }
-    }
-
+    
 }
