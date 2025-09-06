@@ -23,6 +23,9 @@ import java.util.Optional;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
 
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
+
 public class GroupDetailController {
     @FXML private Label groupNameLabel;
     @FXML private Label groupSpecializationLabel;
@@ -141,6 +144,8 @@ public class GroupDetailController {
         this.currentGroup = group;
         updateGroupInfo();
         loadDataFromServer();
+
+        startAttendanceSyncTimer();
     }
 
     private void updateGroupInfo() {
@@ -324,17 +329,45 @@ public class GroupDetailController {
     // Metoda do cichego ładowania obecności (bez alertów)
     private void loadAttendanceFromServerSilent(ClassSchedule schedule) {
         if (schedule.getId() != null) {
+            System.out.println("🔄 Ładuję obecności dla terminu: " + schedule.getSubject() + " (ID: " + schedule.getId() + ")");
+
             attendanceService.getAttendancesByScheduleAsync(schedule.getId())
                     .thenAccept(serverAttendances -> {
                         javafx.application.Platform.runLater(() -> {
+                            System.out.println("📥 Otrzymano " + serverAttendances.size() + " obecności z serwera");
+
+                            // Wyczyść istniejące obecności
                             schedule.getAttendances().clear();
-                            schedule.getAttendances().addAll(serverAttendances);
+
+                            // Dodaj obecności z serwera
+                            for (Attendance serverAttendance : serverAttendances) {
+                                // Znajdź odpowiedniego studenta w lokalnej liście
+                                Student localStudent = students.stream()
+                                        .filter(s -> s.getIndexNumber().equals(serverAttendance.getStudent().getIndexNumber()))
+                                        .findFirst()
+                                        .orElse(null);
+
+                                if (localStudent != null) {
+                                    // Utwórz lokalną obecność z danymi z serwera
+                                    Attendance localAttendance = new Attendance(localStudent, schedule,
+                                            serverAttendance.getStatus(), serverAttendance.getNotes());
+                                    localAttendance.setMarkedAt(serverAttendance.getMarkedAt());
+
+                                    schedule.addAttendance(localAttendance);
+                                    System.out.println("✅ Dodano obecność: " + localStudent.getFullName() + " - " + serverAttendance.getStatus().getDisplayName());
+                                } else {
+                                    System.out.println("⚠️ Nie znaleziono studenta: " + serverAttendance.getStudent().getFullName());
+                                }
+                            }
+
+                            // Odśwież widok
                             refreshSchedulesList();
+                            updateCounts();
                         });
                     })
                     .exceptionally(throwable -> {
                         // Cicha obsługa błędów - tylko log do konsoli
-                        System.err.println("Nie udało się załadować obecności z serwera dla terminu " +
+                        System.err.println("❌ Nie udało się załadować obecności z serwera dla terminu " +
                                 schedule.getSubject() + ": " + throwable.getMessage());
                         return null;
                     });
@@ -961,6 +994,8 @@ public class GroupDetailController {
 
     // Metoda markAttendance z wysyłaniem na serwer
     private void markAttendance(Student student, ClassSchedule schedule, Attendance.Status status, Label statusLabel) {
+        System.out.println("🔄 Oznaczam obecność: " + student.getFullName() + " - " + status.getDisplayName());
+
         Attendance attendance = new Attendance(student, schedule, status);
 
         // Dodaj lokalnie (natychmiastowa reakcja UI)
@@ -972,19 +1007,32 @@ public class GroupDetailController {
 
         // Wyślij na serwer asynchronicznie
         if (schedule.getId() != null) { // Tylko jeśli termin ma ID z serwera
+            System.out.println("📤 Wysyłam obecność na serwer...");
+
             attendanceService.markStudentAttendanceAsync(student, schedule.getId(), status, "")
                     .thenAccept(success -> {
                         javafx.application.Platform.runLater(() -> {
                             if (success) {
                                 System.out.println("✅ Obecność wysłana na serwer: " + student.getFullName() + " - " + status.getDisplayName());
+
+                                // Automatyczne odświeżenie z serwera po 1 sekundzie
+                                javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(1));
+                                pause.setOnFinished(e -> {
+                                    System.out.println("🔄 Auto-odświeżanie obecności z serwera...");
+                                    loadAttendanceFromServerSilent(schedule);
+                                });
+                                pause.play();
+
                             } else {
                                 System.out.println("⚠️ Ostrzeżenie: Nie udało się wysłać obecności na serwer");
+                                showAlert("Ostrzeżenie", "Obecność zapisana lokalnie, ale nie udało się wysłać na serwer", Alert.AlertType.WARNING);
                             }
                         });
                     })
                     .exceptionally(throwable -> {
                         javafx.application.Platform.runLater(() -> {
                             System.err.println("❌ Błąd wysyłania obecności na serwer: " + throwable.getMessage());
+                            showAlert("Błąd", "Obecność zapisana lokalnie, ale wystąpił błąd komunikacji z serwerem: " + throwable.getMessage(), Alert.AlertType.WARNING);
                         });
                         return null;
                     });
@@ -1720,5 +1768,37 @@ import javafx.scene.control.TextArea;
                     });
                     return null;
                 });
+    }
+
+    private void refreshAllAttendancesFromServer() {
+        System.out.println("🔄 Odświeżam wszystkie obecności z serwera...");
+
+        for (ClassSchedule schedule : schedules) {
+            if (schedule.getId() != null) {
+                loadAttendanceFromServerSilent(schedule);
+            }
+        }
+
+        System.out.println("✅ Rozpoczęto odświeżanie obecności dla " + schedules.size() + " terminów");
+    }
+
+    /**
+     * Sprawdź synchronizację z serwerem co 30 sekund
+     */
+    private void startAttendanceSyncTimer() {
+        javafx.animation.Timeline timeline = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.seconds(30), e -> {
+                    System.out.println("⏰ Automatyczna synchronizacja obecności...");
+                    refreshAllAttendancesFromServer();
+                })
+        );
+        timeline.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+        timeline.play();
+    }
+
+    @FXML
+    protected void onRefreshAllAttendancesClick() {
+        refreshAllAttendancesFromServer();
+        showAlert("Info", "Rozpoczęto odświeżanie wszystkich obecności z serwera", Alert.AlertType.INFORMATION);
     }
 }
