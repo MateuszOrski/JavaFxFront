@@ -113,10 +113,21 @@ public class ScheduleService {
         });
     }
 
+    // ================================
+    // 🔧 GŁÓWNA POPRAWKA - addScheduleAsync
+    // ================================
     public CompletableFuture<ClassSchedule> addScheduleAsync(ClassSchedule schedule) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String jsonBody = scheduleToJson(schedule);
+                System.out.println("=== WYSYŁANIE TERMINU NA SERWER ===");
+                System.out.println("📋 Termin: " + schedule.getSubject());
+                System.out.println("📅 Data: " + schedule.getStartTime());
+                System.out.println("🏫 Grupa: " + schedule.getGroupName());
+
+                // 🔧 POPRAWIONY JSON - używamy ręcznego tworzenia dla większej kontroli
+                String jsonBody = createScheduleJsonManually(schedule);
+
+                System.out.println("📤 Wysyłam JSON: " + jsonBody);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(SCHEDULES_ENDPOINT))
@@ -129,21 +140,62 @@ public class ScheduleService {
                 HttpResponse<String> response = httpClient.send(request,
                         HttpResponse.BodyHandlers.ofString());
 
+                System.out.println("📡 Status odpowiedzi: " + response.statusCode());
+                System.out.println("📄 Treść odpowiedzi: " + response.body());
+
                 if (response.statusCode() == 201 || response.statusCode() == 200) {
-                    return parseScheduleFromJson(response.body());
+                    ClassSchedule savedSchedule = parseScheduleFromJson(response.body());
+                    System.out.println("✅ Termin zapisany na serwerze z ID: " + savedSchedule.getId());
+                    return savedSchedule;
                 } else {
-                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
+                    System.err.println("❌ Serwer odpowiedział błędem: " + response.statusCode());
+                    System.err.println("❌ Treść błędu: " + response.body());
+                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode() +
+                            ". Szczegóły: " + response.body());
                 }
 
             } catch (Exception e) {
+                System.err.println("❌ Błąd wysyłania terminu na serwer: " + e.getMessage());
+                e.printStackTrace();
                 throw new RuntimeException("Nie udalo sie dodac terminu na serwer: " + e.getMessage(), e);
             }
         });
     }
 
+    // ================================
+    // 🔧 NOWA METODA - Ręczne tworzenie JSON
+    // ================================
+    private String createScheduleJsonManually(ClassSchedule schedule) {
+        try {
+            StringBuilder json = new StringBuilder();
+            json.append("{");
+
+            // Podstawowe pola terminu
+            json.append("\"subject\":\"").append(escapeJson(schedule.getSubject())).append("\",");
+            json.append("\"classroom\":\"").append(escapeJson(schedule.getClassroom() != null ? schedule.getClassroom() : "")).append("\",");
+            json.append("\"startTime\":\"").append(schedule.getStartTime().format(formatter)).append("\",");
+            json.append("\"endTime\":\"").append(schedule.getEndTime().format(formatter)).append("\",");
+            json.append("\"instructor\":\"").append(escapeJson(schedule.getInstructor() != null ? schedule.getInstructor() : "")).append("\",");
+            json.append("\"notes\":\"").append(escapeJson(schedule.getNotes() != null ? schedule.getNotes() : "")).append("\"");
+
+            // 🔧 KLUCZOWE - Dodaj grupę jako obiekt (zgodnie z backendem)
+            if (schedule.getGroupName() != null && !schedule.getGroupName().trim().isEmpty()) {
+                json.append(",\"group\":{\"name\":\"").append(escapeJson(schedule.getGroupName())).append("\"}");
+            }
+
+            json.append("}");
+            return json.toString();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create schedule JSON manually: " + e.getMessage(), e);
+        }
+    }
+
     public CompletableFuture<Boolean> deleteScheduleAsync(Long scheduleId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
+                System.out.println("🗑️ Usuwam termin z serwera ID: " + scheduleId);
+
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(SCHEDULES_ENDPOINT + "/" + scheduleId))
                         .header("Content-Type", "application/json")
@@ -154,9 +206,19 @@ public class ScheduleService {
                 HttpResponse<String> response = httpClient.send(request,
                         HttpResponse.BodyHandlers.ofString());
 
-                return response.statusCode() == 200 || response.statusCode() == 204;
+                System.out.println("📡 Status usuwania: " + response.statusCode());
+
+                boolean success = response.statusCode() == 200 || response.statusCode() == 204;
+                if (success) {
+                    System.out.println("✅ Termin usunięty z serwera");
+                } else {
+                    System.err.println("❌ Nie udało się usunąć terminu: " + response.body());
+                }
+
+                return success;
 
             } catch (Exception e) {
+                System.err.println("❌ Błąd usuwania terminu: " + e.getMessage());
                 throw new RuntimeException("Nie udalo sie usunac terminu z serwera: " + e.getMessage(), e);
             }
         });
@@ -165,7 +227,11 @@ public class ScheduleService {
     public CompletableFuture<ClassSchedule> updateScheduleAsync(Long scheduleId, ClassSchedule schedule) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String jsonBody = scheduleToJson(schedule);
+                // 🔧 POPRAWKA - używaj nowej metody tworzenia JSON
+                String jsonBody = createScheduleJsonManually(schedule);
+
+                System.out.println("🔄 Aktualizuję termin ID: " + scheduleId);
+                System.out.println("📤 JSON: " + jsonBody);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(SCHEDULES_ENDPOINT + "/" + scheduleId))
@@ -179,12 +245,15 @@ public class ScheduleService {
                         HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() == 200) {
+                    System.out.println("✅ Termin zaktualizowany na serwerze");
                     return parseScheduleFromJson(response.body());
                 } else {
+                    System.err.println("❌ Błąd aktualizacji: " + response.statusCode() + " - " + response.body());
                     throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
                 }
 
             } catch (Exception e) {
+                System.err.println("❌ Błąd aktualizacji terminu: " + e.getMessage());
                 throw new RuntimeException("Nie udalo sie zaktualizowac terminu na serwerze: " + e.getMessage(), e);
             }
         });
@@ -214,22 +283,10 @@ public class ScheduleService {
         }
     }
 
-    private String scheduleToJson(ClassSchedule schedule) {
-        try {
-            ScheduleToServer scheduleToServer = new ScheduleToServer();
-            scheduleToServer.subject = schedule.getSubject();
-            scheduleToServer.classroom = schedule.getClassroom() != null ? schedule.getClassroom() : "";
-            scheduleToServer.startTime = schedule.getStartTime();
-            scheduleToServer.endTime = schedule.getEndTime();
-            scheduleToServer.instructor = schedule.getInstructor() != null ? schedule.getInstructor() : "";
-            scheduleToServer.notes = schedule.getNotes() != null ? schedule.getNotes() : "";
-            scheduleToServer.groupName = schedule.getGroupName();
-
-            return objectMapper.writeValueAsString(scheduleToServer);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to convert schedule to JSON: " + e.getMessage(), e);
-        }
-    }
+    // ================================
+    // 🗑️ USUNIĘTA STARA METODA scheduleToJson
+    // Zastąpiona przez createScheduleJsonManually
+    // ================================
 
     private ClassSchedule convertToClassSchedule(ScheduleFromServer serverSchedule) {
         String groupName = serverSchedule.group != null ? serverSchedule.group.name : "Nieznana grupa";
@@ -247,6 +304,18 @@ public class ScheduleService {
         );
 
         return schedule;
+    }
+
+    // ================================
+    // 🔧 NOWA METODA - Escape JSON strings
+    // ================================
+    private String escapeJson(String str) {
+        if (str == null) return "";
+        return str.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     // === KLASY POMOCNICZE DO SERIALIZACJI - BEZ ADNOTACJI ===
@@ -269,13 +338,8 @@ public class ScheduleService {
         public String specialization;
     }
 
-    private static class ScheduleToServer {
-        public String subject;
-        public String classroom;
-        public LocalDateTime startTime;
-        public LocalDateTime endTime;
-        public String instructor;
-        public String notes;
-        public String groupName;
-    }
+    // ================================
+    // 🗑️ USUNIĘTA KLASA ScheduleToServer
+    // Nie jest już potrzebna - używamy ręcznego tworzenia JSON
+    // ================================
 }
