@@ -253,22 +253,66 @@ public class GroupDetailController {
     }
 
     private void loadSchedulesFromServer() {
+        if (currentGroup == null) {
+            System.err.println("❌ Brak currentGroup - nie można załadować terminów");
+            return;
+        }
+
+        System.out.println("🔄 ŁADOWANIE TERMINÓW dla grupy: '" + currentGroup.getName() + "'");
+
         scheduleService.getSchedulesByGroupAsync(currentGroup.getName())
                 .thenAccept(serverSchedules -> {
                     javafx.application.Platform.runLater(() -> {
+                        System.out.println("📥 Otrzymano " + serverSchedules.size() + " terminów z serwera dla grupy: " + currentGroup.getName());
+
+                        // Debug - wypisz szczegóły wszystkich terminów
+                        System.out.println("=== LISTA TERMINÓW Z SERWERA ===");
+                        for (int i = 0; i < serverSchedules.size(); i++) {
+                            ClassSchedule schedule = serverSchedules.get(i);
+                            System.out.println((i + 1) + ". " + schedule.getSubject() +
+                                    " (ID: " + schedule.getId() +
+                                    ", data: " + schedule.getFormattedStartTime() +
+                                    ", grupa: '" + schedule.getGroupName() + "')");
+                        }
+                        System.out.println("================================");
+
+                        // Wyczyść starą listę
+                        int oldSize = schedules.size();
                         schedules.clear();
+                        System.out.println("🗑️ Wyczyszczono " + oldSize + " starych terminów z listy");
+
+                        // Dodaj nowe terminy
                         schedules.addAll(serverSchedules);
+                        System.out.println("➕ Dodano " + serverSchedules.size() + " nowych terminów do listy");
 
                         // Załaduj obecności dla każdego terminu
                         for (ClassSchedule schedule : serverSchedules) {
-                            loadAttendanceFromServerSilent(schedule);
+                            if (schedule.getId() != null) {
+                                loadAttendanceFromServerSilent(schedule);
+                            } else {
+                                System.out.println("⚠️ Termin " + schedule.getSubject() + " nie ma ID - pomijam ładowanie obecności");
+                            }
                         }
 
+                        // Wymuś odświeżenie ListView
+                        scheduleListView.refresh();
+                        System.out.println("🔄 Wymuszone odświeżenie ListView terminów");
+
                         updateCounts();
+
+                        if (serverSchedules.isEmpty()) {
+                            System.out.println("⚠️ UWAGA: Brak terminów w grupie '" + currentGroup.getName() + "'");
+                            System.out.println("💡 Sprawdź czy terminy są rzeczywiście przypisane do tej grupy w bazie");
+                        } else {
+                            System.out.println("✅ Pomyślnie załadowano " + serverSchedules.size() + " terminów dla grupy '" + currentGroup.getName() + "'");
+                        }
                     });
                 })
                 .exceptionally(throwable -> {
                     javafx.application.Platform.runLater(() -> {
+                        System.err.println("❌ Błąd ładowania terminów dla grupy '" + currentGroup.getName() + "': " + throwable.getMessage());
+                        throwable.printStackTrace();
+
                         showAlert("Ostrzeżenie",
                                 "Nie udało się załadować terminów z serwera:\n" + throwable.getMessage(),
                                 Alert.AlertType.WARNING);

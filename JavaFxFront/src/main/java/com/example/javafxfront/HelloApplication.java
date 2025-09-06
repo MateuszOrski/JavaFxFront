@@ -15,6 +15,7 @@ public class HelloApplication extends Application {
 
         // Dodanie CSS stylów
         //Komentarz do commita o 3 pierwszych dzialajacyh punktach
+        //Naprawa widzenia terminow
         scene.getStylesheets().add(getClass().getResource("styles.css").toExternalForm());
 
         stage.setTitle("Dziennik Online - Zarządzanie Grupami");

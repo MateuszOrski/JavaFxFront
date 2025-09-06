@@ -65,7 +65,13 @@ public class ScheduleService {
     public CompletableFuture<List<ClassSchedule>> getSchedulesByGroupAsync(String groupName) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String url = SCHEDULES_ENDPOINT + "/group/" + java.net.URLEncoder.encode(groupName, "UTF-8");
+                System.out.println("=== FRONTEND: getSchedulesByGroupAsync ===");
+                System.out.println("🔗 Grupa: '" + groupName + "'");
+
+                String encodedGroupName = java.net.URLEncoder.encode(groupName, "UTF-8");
+                String url = SCHEDULES_ENDPOINT + "/group/" + encodedGroupName;
+
+                System.out.println("🔗 Wywołuję URL: " + url);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
@@ -78,14 +84,31 @@ public class ScheduleService {
                 HttpResponse<String> response = httpClient.send(request,
                         HttpResponse.BodyHandlers.ofString());
 
+                System.out.println("📡 Status odpowiedzi: " + response.statusCode());
+                System.out.println("📄 Treść odpowiedzi: " + response.body());
+
                 if (response.statusCode() == 200) {
-                    return parseSchedulesFromJson(response.body());
+                    List<ClassSchedule> schedules = parseSchedulesFromJson(response.body());
+                    System.out.println("✅ Sparsowano " + schedules.size() + " terminów");
+
+                    // Debug - wypisz szczegóły każdego terminu
+                    for (int i = 0; i < schedules.size(); i++) {
+                        ClassSchedule s = schedules.get(i);
+                        System.out.println("  " + (i+1) + ". " + s.getSubject() +
+                                " (ID: " + s.getId() + ", grupa: " + s.getGroupName() + ")");
+                    }
+
+                    return schedules;
                 } else {
-                    throw new RuntimeException("Serwer odpowiedzial statusem: " + response.statusCode());
+                    System.err.println("❌ Serwer odpowiedział statusem: " + response.statusCode());
+                    System.err.println("❌ Treść błędu: " + response.body());
+                    throw new RuntimeException("Serwer odpowiedział statusem: " + response.statusCode());
                 }
 
             } catch (Exception e) {
-                throw new RuntimeException("Nie udalo sie pobrac terminow grupy z serwera: " + e.getMessage(), e);
+                System.err.println("❌ Błąd getSchedulesByGroupAsync: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Nie udało się pobrać terminów grupy z serwera: " + e.getMessage(), e);
             }
         });
     }
