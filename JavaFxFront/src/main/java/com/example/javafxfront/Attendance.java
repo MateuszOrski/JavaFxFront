@@ -43,14 +43,12 @@ public class Attendance {
         this.markedAt = LocalDateTime.now();
     }
 
-    // Getters
     public Student getStudent() { return student; }
     public ClassSchedule getSchedule() { return schedule; }
     public Status getStatus() { return status; }
     public String getNotes() { return notes; }
     public LocalDateTime getMarkedAt() { return markedAt; }
 
-    // Setters
     public void setStudent(Student student) { this.student = student; }
     public void setSchedule(ClassSchedule schedule) { this.schedule = schedule; }
     public void setStatus(Status status) {

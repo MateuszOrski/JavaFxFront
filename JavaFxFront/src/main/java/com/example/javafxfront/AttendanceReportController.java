@@ -175,16 +175,15 @@ public class AttendanceReportController {
             attendanceTable.getColumns().add(column);
         }
 
-        // Dodaj kolumnę statystyk
+        // Kolumna statystyk
         TableColumn<AttendanceReportRow, String> statsColumn = new TableColumn<>("Statystyki");
         statsColumn.setCellValueFactory(new PropertyValueFactory<>("statistics"));
         attendanceTable.getColumns().add(statsColumn);
 
-        // Generuj dane dla każdego studenta
         for (Student student : students) {
             AttendanceReportRow row = new AttendanceReportRow(student);
 
-            // Zbierz obecności dla każdego terminu
+            // zbieranie obecnsoci dla terminu
             for (ClassSchedule schedule : schedules) {
                 Attendance attendance = schedule.getAttendanceForStudent(student);
                 if (attendance != null) {
@@ -207,13 +206,11 @@ public class AttendanceReportController {
             return;
         }
 
-        // Oblicz średnią obecność
         double avgAttendance = reportData.stream()
                 .mapToDouble(AttendanceReportRow::getAttendancePercentage)
                 .average()
                 .orElse(0.0);
 
-        // Znajdź najlepszego i najgorszego studenta
         AttendanceReportRow bestStudent = reportData.stream()
                 .max((a, b) -> Double.compare(a.getAttendancePercentage(), b.getAttendancePercentage()))
                 .orElse(null);
@@ -222,7 +219,6 @@ public class AttendanceReportController {
                 .min((a, b) -> Double.compare(a.getAttendancePercentage(), b.getAttendancePercentage()))
                 .orElse(null);
 
-        // Aktualizuj labels
         avgAttendanceLabel.setText(String.format("Średnia obecność: %.1f%%", avgAttendance));
 
         if (bestStudent != null) {
@@ -287,7 +283,6 @@ public class AttendanceReportController {
 
     @FXML
     private void refreshReport() {
-        // Odśwież dane z serwera i wygeneruj raport ponownie
         generateReport();
         calculateStatistics();
         showAlert("Info", "Raport został odświeżony", Alert.AlertType.INFORMATION);
@@ -307,7 +302,6 @@ public class AttendanceReportController {
         alert.showAndWait();
     }
 
-    // Klasa pomocnicza dla wiersza raportu
     public static class AttendanceReportRow {
         private final Student student;
         private final List<String> attendanceStatuses = new java.util.ArrayList<>();
@@ -351,7 +345,6 @@ public class AttendanceReportController {
             return (double) (present + late) / total * 100;
         }
 
-        // Gettery dla TableView
         public String getStudentName() { return student.getFullName(); }
         public String getIndexNumber() { return student.getIndexNumber(); }
         public String getStatistics() { return statistics; }

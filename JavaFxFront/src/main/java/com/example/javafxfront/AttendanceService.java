@@ -31,7 +31,6 @@ public class AttendanceService {
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
 
-        // DODANE - Konfiguracja ObjectMapper
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -85,7 +84,7 @@ public class AttendanceService {
             try {
                 String jsonBody = createAttendanceJson(student, scheduleId, status, notes);
 
-                System.out.println("📤 Wysyłam obecność JSON: " + jsonBody); // DEBUG
+                System.out.println("Wysyłam obecność JSON: " + jsonBody); // DEBUG
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(ATTENDANCE_ENDPOINT + "/mark-student"))
@@ -98,13 +97,13 @@ public class AttendanceService {
                 HttpResponse<String> response = httpClient.send(request,
                         HttpResponse.BodyHandlers.ofString());
 
-                System.out.println("📡 Status odpowiedzi: " + response.statusCode()); // DEBUG
-                System.out.println("📄 Treść odpowiedzi: " + response.body()); // DEBUG
+                System.out.println("Status odpowiedzi: " + response.statusCode()); // DEBUG
+                System.out.println("Treść odpowiedzi: " + response.body()); // DEBUG
 
                 return response.statusCode() == 201 || response.statusCode() == 200;
 
             } catch (Exception e) {
-                System.err.println("❌ Błąd wysyłania obecności: " + e.getMessage()); // DEBUG
+                System.err.println("Błąd wysyłania obecności: " + e.getMessage()); // DEBUG
                 throw new RuntimeException("Nie udało się wysłać obecności studenta na serwer: " + e.getMessage(), e);
             }
         });
@@ -118,7 +117,7 @@ public class AttendanceService {
     public CompletableFuture<List<Attendance>> getAttendancesByScheduleAsync(Long scheduleId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                System.out.println("🔍 Pobieranie obecności dla terminu ID: " + scheduleId); // DEBUG
+                System.out.println("Pobieranie obecności dla terminu ID: " + scheduleId); // DEBUG
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(ATTENDANCE_ENDPOINT + "/schedule/" + scheduleId))
@@ -130,19 +129,19 @@ public class AttendanceService {
                 HttpResponse<String> response = httpClient.send(request,
                         HttpResponse.BodyHandlers.ofString());
 
-                System.out.println("📡 Status: " + response.statusCode()); // DEBUG
-                System.out.println("📄 JSON: " + response.body()); // DEBUG
+                System.out.println("Status: " + response.statusCode()); // DEBUG
+                System.out.println("JSON: " + response.body()); // DEBUG
 
                 if (response.statusCode() == 200) {
                     List<Attendance> attendances = parseAttendanceListFromJson(response.body());
-                    System.out.println("✅ Sparsowano " + attendances.size() + " obecności"); // DEBUG
+                    System.out.println("Sparsowano " + attendances.size() + " obecności"); // DEBUG
                     return attendances;
                 } else {
                     throw new RuntimeException("Serwer odpowiedział statusem: " + response.statusCode());
                 }
 
             } catch (Exception e) {
-                System.err.println("❌ Błąd pobierania obecności: " + e.getMessage()); // DEBUG
+                System.err.println("Błąd pobierania obecności: " + e.getMessage()); // DEBUG
                 throw new RuntimeException("Nie udało się pobrać obecności z serwera: " + e.getMessage(), e);
             }
         });
@@ -240,9 +239,6 @@ public class AttendanceService {
 
     // === METODY PRYWATNE DO PARSOWANIA I TWORZENIA JSON ===
 
-    /**
-     * Konwertuje obiekt Attendance do JSON
-     */
     private String attendanceToJson(Attendance attendance) {
         return String.format(
                 "{"
@@ -268,9 +264,6 @@ public class AttendanceService {
         );
     }
 
-    /**
-     * Tworzy JSON dla oznaczenia obecności studenta (uproszczona wersja)
-     */
     private String createAttendanceJson(Student student, Long scheduleId,
                                         Attendance.Status status, String notes) {
         return String.format(
@@ -293,23 +286,17 @@ public class AttendanceService {
         );
     }
 
-    /**
-     * NOWA IMPLEMENTACJA - Parsuje pojedynczy obiekt Attendance z JSON
-     */
     private Attendance parseAttendanceFromJson(String json) {
         try {
             AttendanceFromServer serverAttendance = objectMapper.readValue(json, AttendanceFromServer.class);
             return convertToAttendance(serverAttendance);
         } catch (JsonProcessingException e) {
-            System.err.println("❌ Błąd parsowania JSON attendance: " + e.getMessage());
+            System.err.println("Błąd parsowania JSON attendance: " + e.getMessage());
             System.err.println("JSON: " + json);
             throw new RuntimeException("Failed to parse attendance JSON: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * NOWA IMPLEMENTACJA - Parsuje listę obecności z JSON
-     */
     private List<Attendance> parseAttendanceListFromJson(String json) {
         try {
             List<AttendanceFromServer> serverAttendances = objectMapper.readValue(json, new TypeReference<List<AttendanceFromServer>>() {});
@@ -318,17 +305,13 @@ public class AttendanceService {
                     .map(this::convertToAttendance)
                     .toList();
         } catch (JsonProcessingException e) {
-            System.err.println("❌ Błąd parsowania JSON attendance list: " + e.getMessage());
+            System.err.println("Błąd parsowania JSON attendance list: " + e.getMessage());
             System.err.println("JSON: " + json);
             throw new RuntimeException("Failed to parse attendance list JSON: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * Konwertuje AttendanceFromServer na Attendance
-     */
     private Attendance convertToAttendance(AttendanceFromServer serverAttendance) {
-        // Utwórz studenta na podstawie danych z serwera
         Student student = new Student(
                 serverAttendance.student.firstName,
                 serverAttendance.student.lastName,
@@ -336,7 +319,6 @@ public class AttendanceService {
                 serverAttendance.student.group != null ? serverAttendance.student.group.name : null
         );
 
-        // Utwórz termin na podstawie danych z serwera
         ClassSchedule schedule = new ClassSchedule(
                 serverAttendance.schedule.id,
                 serverAttendance.schedule.subject,
@@ -349,7 +331,6 @@ public class AttendanceService {
                 serverAttendance.schedule.createdDate
         );
 
-        // Utwórz obecność
         Attendance.Status status;
         switch (serverAttendance.status) {
             case "PRESENT": status = Attendance.Status.PRESENT; break;
@@ -364,9 +345,6 @@ public class AttendanceService {
         return attendance;
     }
 
-    /**
-     * Pomocnicza metoda do escape'owania stringów w JSON
-     */
     private String escapeJson(String str) {
         if (str == null) return "";
         return str.replace("\\", "\\\\")
@@ -375,7 +353,6 @@ public class AttendanceService {
                 .replace("\r", "\\r");
     }
 
-    // === KLASY POMOCNICZE DO DESERIALIZACJI ===
 
     private static class AttendanceFromServer {
         public Long id;

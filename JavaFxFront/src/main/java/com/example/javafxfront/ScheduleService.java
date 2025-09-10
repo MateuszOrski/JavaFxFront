@@ -306,9 +306,6 @@ public class ScheduleService {
         return schedule;
     }
 
-    // ================================
-    // 🔧 NOWA METODA - Escape JSON strings
-    // ================================
     private String escapeJson(String str) {
         if (str == null) return "";
         return str.replace("\\", "\\\\")
@@ -318,7 +315,6 @@ public class ScheduleService {
                 .replace("\t", "\\t");
     }
 
-    // === KLASY POMOCNICZE DO SERIALIZACJI - BEZ ADNOTACJI ===
 
     private static class ScheduleFromServer {
         public Long id;

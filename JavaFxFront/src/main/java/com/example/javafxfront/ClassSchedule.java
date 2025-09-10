@@ -47,7 +47,6 @@ public class ClassSchedule {
         this.attendances = new ArrayList<>(); // DODANE
     }
 
-    // Getters
     public Long getId() { return id; }
     public String getSubject() { return subject; }
     public String getClassroom() { return classroom; }
@@ -59,7 +58,6 @@ public class ClassSchedule {
     public LocalDateTime getCreatedDate() { return createdDate; }
     public List<Attendance> getAttendances() { return attendances; } // DODANE
 
-    // Setters
     public void setId(Long id) { this.id = id; }
     public void setSubject(String subject) { this.subject = subject; }
     public void setClassroom(String classroom) { this.classroom = classroom; }
@@ -91,11 +89,9 @@ public class ClassSchedule {
         return id != null;
     }
 
-    // DODANE - Metody do zarządzania uczestnictwem
+    //Metody do zarządzania uczestnictwem
     public void addAttendance(Attendance attendance) {
-        // Usuń stary wpis dla tego studenta jeśli istnieje
         attendances.removeIf(a -> a.getStudent().getIndexNumber().equals(attendance.getStudent().getIndexNumber()));
-        // Dodaj nowy wpis
         attendances.add(attendance);
     }
 

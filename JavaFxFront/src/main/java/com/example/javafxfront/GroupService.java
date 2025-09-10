@@ -30,7 +30,7 @@ public class GroupService {
 
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
-        // KLUCZOWE - Ignoruj nieznane właściwości globalnie
+
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 

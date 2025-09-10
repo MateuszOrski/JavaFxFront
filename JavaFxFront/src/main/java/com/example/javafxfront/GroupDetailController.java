@@ -165,13 +165,12 @@ public class GroupDetailController {
         studentCountLabel.setText("Liczba studentów: " + students.size());
         scheduleCountLabel.setText("Liczba terminów: " + schedules.size());
 
-        // DODANE - Sprawdź czy można wygenerować dziennik obecności
+        //czy można wygenerować dziennik obecności
         if (showReportButton != null) {
             boolean canGenerateReport = !students.isEmpty() && !schedules.isEmpty();
             showReportButton.setDisable(!canGenerateReport);
 
             if (canGenerateReport) {
-                // Sprawdź czy są jakieś dane o obecności
                 long totalAttendanceEntries = schedules.stream()
                         .mapToLong(s -> s.getAttendances().size())
                         .sum();
@@ -211,7 +210,7 @@ public class GroupDetailController {
                     javafx.application.Platform.runLater(() -> {
                         System.out.println("📥 Otrzymano " + serverStudents.size() + " studentów z serwera dla grupy: " + currentGroup.getName());
 
-                        // Debug - wypisz szczegóły wszystkich studentów
+                        //szczegóły wszystkich studentów
                         System.out.println("=== LISTA STUDENTÓW Z SERWERA ===");
                         for (int i = 0; i < serverStudents.size(); i++) {
                             Student student = serverStudents.get(i);
@@ -221,16 +220,13 @@ public class GroupDetailController {
                         }
                         System.out.println("================================");
 
-                        // Wyczyść starą listę
                         int oldSize = students.size();
                         students.clear();
                         System.out.println("🗑️ Wyczyszczono " + oldSize + " starych studentów z listy");
 
-                        // Dodaj nowych studentów
                         students.addAll(serverStudents);
                         System.out.println("➕ Dodano " + serverStudents.size() + " nowych studentów do listy");
 
-                        // Wymuś odświeżenie ListView
                         studentsListView.refresh();
                         System.out.println("🔄 Wymuszone odświeżenie ListView");
 
