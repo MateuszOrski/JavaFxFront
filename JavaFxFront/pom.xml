@@ -258,6 +258,8 @@
             </build>
         </profile>
 
+
+
         <!-- Profil dla testów z pokryciem kodu -->
         <profile>
             <id>coverage</id>
