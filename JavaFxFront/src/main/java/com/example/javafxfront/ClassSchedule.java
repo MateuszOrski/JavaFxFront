@@ -128,9 +128,9 @@ import java.util.List;
  *   <li>Statystyki są obliczane na żądanie (bez cache'owania)</li>
  * </ul>
  *
- * @author Dziennik Online Development Team
+ * @author Mateusz Orski
  * @version 1.0
- * @since 2024
+ * @since 2025
  *
  * @see Attendance Klasa reprezentująca obecność studenta
  * @see Student Klasa studenta uczestniczącego w zajęciach
