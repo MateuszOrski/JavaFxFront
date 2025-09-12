@@ -322,7 +322,6 @@ public class GroupDetailController {
                 });
     }
 
-    // Metoda do cichego ładowania obecności (bez alertów)
     private void loadAttendanceFromServerSilent(ClassSchedule schedule) {
         if (schedule.getId() != null) {
             System.out.println("🔄 Ładuję obecności dla terminu: " + schedule.getSubject() + " (ID: " + schedule.getId() + ")");
@@ -332,19 +331,16 @@ public class GroupDetailController {
                         javafx.application.Platform.runLater(() -> {
                             System.out.println("📥 Otrzymano " + serverAttendances.size() + " obecności z serwera");
 
-                            // Wyczyść istniejące obecności
                             schedule.getAttendances().clear();
 
-                            // Dodaj obecności z serwera
                             for (Attendance serverAttendance : serverAttendances) {
-                                // Znajdź odpowiedniego studenta w lokalnej liście
                                 Student localStudent = students.stream()
                                         .filter(s -> s.getIndexNumber().equals(serverAttendance.getStudent().getIndexNumber()))
                                         .findFirst()
                                         .orElse(null);
 
                                 if (localStudent != null) {
-                                    // Utwórz lokalną obecność z danymi z serwera
+
                                     Attendance localAttendance = new Attendance(localStudent, schedule,
                                             serverAttendance.getStatus(), serverAttendance.getNotes());
                                     localAttendance.setMarkedAt(serverAttendance.getMarkedAt());
@@ -356,7 +352,7 @@ public class GroupDetailController {
                                 }
                             }
 
-                            // Odśwież widok
+
                             refreshSchedulesList();
                             updateCounts();
                         });
@@ -406,7 +402,6 @@ public class GroupDetailController {
         System.out.println("=== PRZYPISYWANIE ISTNIEJĄCEGO STUDENTA ===");
         System.out.println("Szukam studenta o indeksie: " + indexNumber);
 
-        // Najpierw spróbuj znaleźć studenta na serwerze
         studentService.getAllStudentsAsync()
                 .thenAccept(allStudents -> {
                     System.out.println("Otrzymano " + allStudents.size() + " studentów z serwera");
@@ -434,11 +429,9 @@ public class GroupDetailController {
                         System.out.println("Student istnieje. Aktualna grupa: '" + existingStudent.getGroupName() + "'");
                         System.out.println("Docelowa grupa: '" + currentGroup.getName() + "'");
 
-                        // Student istnieje - sprawdź czy już ma grupę
                         if (existingStudent.getGroupName() != null &&
                                 !existingStudent.getGroupName().isEmpty()) {
 
-                            // Sprawdź czy to ta sama grupa
                             if (existingStudent.getGroupName().equals(currentGroup.getName())) {
                                 addStudentButton.setDisable(false);
                                 addStudentButton.setText("Dodaj studenta");
@@ -465,7 +458,6 @@ public class GroupDetailController {
                                 addStudentButton.setDisable(true);
                                 addStudentButton.setText("Przenoszę...");
 
-                                // Przenieś studenta
                                 Student updatedStudent = new Student(existingStudent.getFirstName(),
                                         existingStudent.getLastName(),
                                         existingStudent.getIndexNumber(),
@@ -477,7 +469,6 @@ public class GroupDetailController {
 
                         System.out.println("Student nie ma grupy - przypisuję do: " + currentGroup.getName());
 
-                        // Przypisz studenta do bieżącej grupy
                         Student updatedStudent = new Student(existingStudent.getFirstName(),
                                 existingStudent.getLastName(),
                                 existingStudent.getIndexNumber(),
@@ -530,7 +521,6 @@ public class GroupDetailController {
                             // Student istnieje - spróbuj go zaktualizować (przypisać do grupy)
                             updateStudentGroup(newStudent, newStudent.getFullName());
                         } else {
-                            // Inny błąd - dodaj lokalnie
                             students.add(newStudent);
                             animateButton(addStudentButton);
                             clearStudentForm();
@@ -562,7 +552,6 @@ public class GroupDetailController {
 
                         System.out.println("✅ Student zaktualizowany na serwerze: " + studentDisplayName);
 
-                        // Dodaj studenta do lokalnej listy
                         students.add(student);
                         System.out.println("➕ Dodano studenta do lokalnej listy");
 
@@ -570,7 +559,6 @@ public class GroupDetailController {
                         clearStudentForm();
                         updateCounts();
 
-                        // 🔧 KLUCZOWE: Automatyczne odświeżenie z serwera po 1 sekundzie
                         javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(1));
                         pause.setOnFinished(e -> {
                             System.out.println("🔄 Auto-odświeżanie listy studentów po przypisaniu...");
@@ -591,13 +579,11 @@ public class GroupDetailController {
 
                         System.err.println("❌ Błąd aktualizacji studenta: " + updateThrowable.getMessage());
 
-                        // Mimo błędu, dodaj lokalnie i spróbuj odświeżyć
                         students.add(student);
                         animateButton(addStudentButton);
                         clearStudentForm();
                         updateCounts();
 
-                        // Spróbuj odświeżyć z serwera
                         javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
                         pause.setOnFinished(e -> {
                             System.out.println("🔄 Auto-odświeżanie po błędzie...");
@@ -622,7 +608,6 @@ public class GroupDetailController {
         String lastName = lastNameField.getText().trim();
         String indexNumber = indexNumberField.getText().trim();
 
-        // DEBUG - pokaż co użytkownik wpisał
         System.out.println("=== DEBUG DODAWANIE STUDENTA ===");
         System.out.println("Imię: '" + firstName + "'");
         System.out.println("Nazwisko: '" + lastName + "'");
@@ -639,7 +624,6 @@ public class GroupDetailController {
             return;
         }
 
-        // Sprawdź czy student już jest w tej grupie
         boolean studentInGroup = students.stream()
                 .anyMatch(s -> s.getIndexNumber().equals(indexNumber));
         if (studentInGroup) {
@@ -651,17 +635,16 @@ public class GroupDetailController {
         addStudentButton.setDisable(true);
         addStudentButton.setText("Sprawdzam...");
 
-        // SCENARIUSZ 1: Tylko numer indeksu (przypisz istniejącego)
         if (firstName.isEmpty() && lastName.isEmpty()) {
             System.out.println(">>> SCENARIUSZ 1: Przypisywanie istniejącego studenta");
             assignExistingStudentToGroup(indexNumber);
         }
-        // SCENARIUSZ 2: Pełne dane (utwórz nowego lub zaktualizuj istniejącego)
+
         else if (!firstName.isEmpty() && !lastName.isEmpty()) {
             System.out.println(">>> SCENARIUSZ 2: Tworzenie nowego studenta");
             createOrUpdateStudent(firstName, lastName, indexNumber);
         }
-        // SCENARIUSZ 3: Niepełne dane
+
         else {
             System.out.println(">>> SCENARIUSZ 3: Niepełne dane - błąd");
             addStudentButton.setDisable(false);
@@ -757,7 +740,6 @@ public class GroupDetailController {
                 });
     }
 
-    // DODANE - Obsługa przycisku dziennika obecności
     @FXML
     protected void onShowReportClick() {
         if (currentGroup == null) {
@@ -778,38 +760,29 @@ public class GroupDetailController {
         }
 
         try {
-            // Animacja przycisku
             animateButton(showReportButton);
 
-            // Załaduj FXML dla dziennika
             FXMLLoader loader = new FXMLLoader(getClass().getResource("attendance-report-view.fxml"));
             Parent root = loader.load();
 
-            // Pobierz kontroler dziennika
             AttendanceReportController reportController = loader.getController();
 
-            // Przekaż dane do kontrolera dziennika
             reportController.setData(currentGroup, new java.util.ArrayList<>(students),
                     new java.util.ArrayList<>(schedules));
 
-            // Utwórz nowe okno
             Stage reportStage = new Stage();
             reportStage.setTitle("📊 Dziennik obecności - " + currentGroup.getName());
             reportStage.setScene(new Scene(root, 1200, 800));
 
-            // Dodaj stylizację
             reportStage.getScene().getStylesheets().add(
                     getClass().getResource("styles.css").toExternalForm());
 
-            // Ustaw minimalny rozmiar
             reportStage.setMinWidth(1000);
             reportStage.setMinHeight(600);
 
-            // Ustaw modalność - okno blokuje interakcję z rodzicielskim oknem
             reportStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
             reportStage.initOwner(showReportButton.getScene().getWindow());
 
-            // Pokaż okno dziennika
             reportStage.show();
 
             System.out.println("✅ Otwarto dziennik obecności dla grupy: " + currentGroup.getName());
@@ -836,7 +809,6 @@ public class GroupDetailController {
         return LocalTime.of(hours, minutes);
     }
 
-    // Otwórz okno szczegółów terminu z zarządzaniem obecnością
     private void openScheduleDetailWindow(ClassSchedule schedule) {
         try {
             Stage newStage = new Stage();
@@ -847,7 +819,6 @@ public class GroupDetailController {
             VBox root = new VBox(20);
             root.setStyle("-fx-background-color: white; -fx-padding: 20;");
 
-            // Header z informacjami o terminie
             Label titleLabel = new Label("Zarządzanie terminem");
             titleLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #DC143C;");
 
@@ -861,7 +832,6 @@ public class GroupDetailController {
                     createInfoLabel("Frekwencja: " + schedule.getAttendanceSummary())
             );
 
-            // Lista studentów z przyciskami obecności
             Label studentsLabel = new Label("Lista studentów grupy:");
             studentsLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #212529;");
 
@@ -876,7 +846,6 @@ public class GroupDetailController {
             scrollPane.setPrefHeight(350);
             scrollPane.setStyle("-fx-background-color: transparent;");
 
-            // Przyciski akcji
             HBox buttonsBox = new HBox(15);
 
             Button closeButton = new Button("Zamknij");
@@ -887,7 +856,6 @@ public class GroupDetailController {
             clearAllButton.setOnAction(e -> clearAllAttendances(schedule, newStage));
             clearAllButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-padding: 10 20; -fx-background-radius: 20;");
 
-            // Przycisk ładowania obecności z serwera
             Button loadServerAttendanceButton = new Button("Załaduj z serwera");
             loadServerAttendanceButton.setOnAction(e -> {
                 loadAttendanceFromServer(schedule);
@@ -924,7 +892,6 @@ public class GroupDetailController {
         HBox row = new HBox(15);
         row.setStyle("-fx-padding: 10; -fx-background-color: white; -fx-background-radius: 5; -fx-border-color: #E9ECEF; -fx-border-radius: 5;");
 
-        // Informacje o studencie
         VBox studentInfo = new VBox(3);
         Label nameLabel = new Label(student.getFullName());
         nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
@@ -934,7 +901,6 @@ public class GroupDetailController {
 
         studentInfo.getChildren().addAll(nameLabel, indexLabel);
 
-        // Status obecności
         Label statusLabel = new Label();
         statusLabel.setPrefWidth(120);
 
@@ -947,7 +913,6 @@ public class GroupDetailController {
             statusLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #6C757D;");
         }
 
-        // Przyciski do oznaczania obecności
         HBox buttonsBox = new HBox(5);
 
         Button presentButton = new Button("Obecny");
@@ -980,7 +945,6 @@ public class GroupDetailController {
 
         buttonsBox.getChildren().addAll(presentButton, lateButton, absentButton, clearButton);
 
-        // Spacer aby przyciski były po prawej
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
 
@@ -988,20 +952,16 @@ public class GroupDetailController {
         return row;
     }
 
-    // Metoda markAttendance z wysyłaniem na serwer
     private void markAttendance(Student student, ClassSchedule schedule, Attendance.Status status, Label statusLabel) {
         System.out.println("🔄 Oznaczam obecność: " + student.getFullName() + " - " + status.getDisplayName());
 
         Attendance attendance = new Attendance(student, schedule, status);
 
-        // Dodaj lokalnie (natychmiastowa reakcja UI)
         schedule.addAttendance(attendance);
 
-        // Zaktualizuj label statusu natychmiast
         statusLabel.setText(status.getDisplayName());
         statusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: " + status.getColor() + ";");
 
-        // Wyślij na serwer asynchronicznie
         if (schedule.getId() != null) { // Tylko jeśli termin ma ID z serwera
             System.out.println("📤 Wysyłam obecność na serwer...");
 
@@ -1011,7 +971,6 @@ public class GroupDetailController {
                             if (success) {
                                 System.out.println("✅ Obecność wysłana na serwer: " + student.getFullName() + " - " + status.getDisplayName());
 
-                                // Automatyczne odświeżenie z serwera po 1 sekundzie
                                 javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(1));
                                 pause.setOnFinished(e -> {
                                     System.out.println("🔄 Auto-odświeżanie obecności z serwera...");
@@ -1040,17 +999,14 @@ public class GroupDetailController {
                 Alert.AlertType.INFORMATION);
     }
 
-    // Metoda clearAttendance z usuwaniem z serwera
     private void clearAttendance(Student student, ClassSchedule schedule, Label statusLabel) {
         // Usuń lokalnie (natychmiastowa reakcja UI)
         schedule.removeAttendance(student);
 
-        // Zaktualizuj label statusu natychmiast
         statusLabel.setText("Nie zaznaczono");
         statusLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #6C757D;");
 
-        // Usuń z serwera asynchronicznie
-        if (schedule.getId() != null) { // Tylko jeśli termin ma ID z serwera
+        if (schedule.getId() != null) {
             attendanceService.removeAttendanceAsync(student.getIndexNumber(), schedule.getId())
                     .thenAccept(success -> {
                         javafx.application.Platform.runLater(() -> {
@@ -1084,9 +1040,8 @@ public class GroupDetailController {
         Optional<ButtonType> result = confirmAlert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
 
-            // Usuń wszystkie z serwera jeśli to termin serwerowy
             if (schedule.isFromServer() && schedule.getId() != null) {
-                // Usuń każdą obecność z serwera
+
                 for (Attendance attendance : schedule.getAttendances()) {
                     attendanceService.removeAttendanceAsync(
                             attendance.getStudent().getIndexNumber(),
@@ -1098,10 +1053,10 @@ public class GroupDetailController {
                 }
             }
 
-            // Usuń lokalnie
+
             schedule.getAttendances().clear();
 
-            // Odśwież widok
+
             stage.close();
             openScheduleDetailWindow(schedule);
             refreshSchedulesList();
@@ -1111,37 +1066,29 @@ public class GroupDetailController {
     }
 
     private void refreshSchedulesList() {
-        // Wymusz odświeżenie ListView terminów
         scheduleListView.refresh();
         updateCounts();
     }
 
-    // Dodaj tę metodę do klasy GroupDetailController.java
-// Zastąpi istniejącą metodę onRemoveStudentClick()
 
     @FXML
     protected void onRemoveStudentClick() {
         Student selectedStudent = studentsListView.getSelectionModel().getSelectedItem();
         if (selectedStudent != null) {
-            // Tworzymy dialog dla USUWANIA Z GRUPY (nie z systemu!)
             Dialog<ButtonType> confirmDialog = new Dialog<>();
             confirmDialog.setTitle("Usuwanie studenta z grupy");
             confirmDialog.setHeaderText("Czy na pewno chcesz usunąć studenta " + selectedStudent.getFullName() + " z grupy " + currentGroup.getName() + "?");
 
-            // Ikona ostrzeżenia
             confirmDialog.setGraphic(new javafx.scene.control.Label("⚠️"));
 
-            // Buttons - ZMIENIONE nazwy przycisków
             ButtonType removeFromGroupButtonType = new ButtonType("Usuń z grupy", ButtonBar.ButtonData.OK_DONE);
             ButtonType cancelButtonType = new ButtonType("Anuluj", ButtonBar.ButtonData.CANCEL_CLOSE);
             confirmDialog.getDialogPane().getButtonTypes().addAll(removeFromGroupButtonType, cancelButtonType);
 
-            // Tworzenie content z dodatkowymi polami
             VBox content = new VBox(15);
             content.setPadding(new Insets(20));
             content.setStyle("-fx-background-color: #FFFFFF;");
 
-            // Informacje o studencie
             VBox studentInfo = new VBox(8);
             studentInfo.setStyle("-fx-background-color: rgba(220, 20, 60, 0.05); " +
                     "-fx-padding: 15; " +
@@ -1164,7 +1111,6 @@ public class GroupDetailController {
 
             studentInfo.getChildren().addAll(studentNameLabel, studentIndexLabel, currentGroupLabel, actionLabel);
 
-            // Dodatkowe pole - Powód usunięcia z grupy
             VBox reasonSection = new VBox(8);
 
             Label reasonLabel = new Label("Powód usunięcia z grupy (opcjonalne):");
@@ -1188,7 +1134,6 @@ public class GroupDetailController {
                     "-fx-background-radius: 5; " +
                     "-fx-padding: 8;");
 
-            // Pole tekstowe dla dodatkowych uwag
             Label notesLabel = new Label("Dodatkowe uwagi:");
             notesLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #212529;");
 
@@ -1205,11 +1150,9 @@ public class GroupDetailController {
 
             reasonSection.getChildren().addAll(reasonLabel, reasonComboBox, notesLabel, notesTextArea);
 
-            // Checkbox dla potwierdzenia
             CheckBox confirmationCheckBox = new CheckBox("Potwierdzam, że chcę usunąć tego studenta z grupy " + currentGroup.getName());
             confirmationCheckBox.setStyle("-fx-font-size: 12px; -fx-text-fill: #212529; -fx-font-weight: bold;");
 
-            // Informacja - co się stanie
             VBox infoBox = new VBox(5);
             infoBox.setStyle("-fx-background-color: rgba(56, 161, 105, 0.1); " +
                     "-fx-padding: 12; " +
@@ -1235,17 +1178,14 @@ public class GroupDetailController {
 
             infoBox.getChildren().addAll(infoTitle, infoText1, infoText2, infoText3, infoText4);
 
-            // Dodaj wszystko do content
             content.getChildren().addAll(studentInfo, reasonSection, confirmationCheckBox, infoBox);
 
             confirmDialog.getDialogPane().setContent(content);
 
-            // Stylizacja dialogu
             confirmDialog.getDialogPane().getStylesheets().add(
                     getClass().getResource("styles.css").toExternalForm());
             confirmDialog.getDialogPane().getStyleClass().add("alert-dialog");
 
-            // Walidacja - przycisk usuń z grupy aktywny tylko gdy checkbox zaznaczony
             javafx.scene.Node removeButton = confirmDialog.getDialogPane().lookupButton(removeFromGroupButtonType);
             removeButton.setDisable(true);
 
@@ -1253,41 +1193,34 @@ public class GroupDetailController {
                 removeButton.setDisable(!isSelected);
             });
 
-            // Pokaż dialog i przetwórz wynik
             Optional<ButtonType> result = confirmDialog.showAndWait();
 
             if (result.isPresent() && result.get() == removeFromGroupButtonType) {
-                // Zbierz dodatkowe informacje
                 String reason = reasonComboBox.getValue();
                 String notes = notesTextArea.getText().trim();
 
-                // KLUCZOWE: Wywołaj metodę usuwania z grupy (NIE całkowite usuwanie!)
+
                 performStudentRemovalFromGroup(selectedStudent, reason, notes);
             }
         }
     }
 
     private void performStudentRemovalFromGroup(Student student, String reason, String notes) {
-        // Logowanie przed usunięciem z grupy
         logStudentRemovalFromGroup(student, reason, notes);
 
         System.out.println("🔄 ROZPOCZYNAM usuwanie studenta z grupy (nie z systemu)");
         System.out.println("📋 Student: " + student.getFullName() + " (indeks: " + student.getIndexNumber() + ")");
         System.out.println("📋 Grupa: " + currentGroup.getName());
 
-        // KLUCZOWE: Używamy metody removeStudentFromGroupAsync zamiast deleteStudentAsync!
         studentService.removeStudentFromGroupAsync(student.getIndexNumber())
                 .thenAccept(updatedStudent -> {
                     javafx.application.Platform.runLater(() -> {
                         System.out.println("✅ Student usunięty z grupy na serwerze");
 
-                        // Usuń z lokalnej listy tej grupy
                         students.remove(student);
 
-                        // Usuń studenta ze wszystkich terminów tej grupy (lokalnie i z serwera)
                         for (ClassSchedule schedule : schedules) {
                             if (schedule.hasAttendanceForStudent(student)) {
-                                // Usuń z serwera jeśli termin ma ID
                                 if (schedule.getId() != null) {
                                     attendanceService.removeAttendanceAsync(
                                             student.getIndexNumber(),
@@ -1297,7 +1230,6 @@ public class GroupDetailController {
                                         return null;
                                     });
                                 }
-                                // Usuń lokalnie
                                 schedule.removeAttendance(student);
                             }
                         }
@@ -1305,7 +1237,6 @@ public class GroupDetailController {
                         refreshSchedulesList();
                         updateCounts();
 
-                        // Pokaż potwierdzenie
                         StringBuilder confirmMessage = new StringBuilder();
                         confirmMessage.append("✅ Student ").append(student.getFullName())
                                 .append(" został usunięty z grupy ").append(currentGroup.getName()).append("!");
@@ -1376,20 +1307,16 @@ public class GroupDetailController {
      * Wykonuje właściwe usunięcie studenta z dodatkowym logowaniem
      */
     private void performStudentRemoval(Student student, String reason, String notes) {
-        // Logowanie przed usunięciem
         logStudentRemoval(student, reason, notes);
 
-        // Wywołanie usunięcia z serwera
         studentService.deleteStudentAsync(student.getIndexNumber())
                 .thenAccept(success -> {
                     javafx.application.Platform.runLater(() -> {
-                        // Usuń z lokalnej listy
                         students.remove(student);
 
-                        // Usuń studenta ze wszystkich terminów (lokalnie i z serwera)
                         for (ClassSchedule schedule : schedules) {
                             if (schedule.hasAttendanceForStudent(student)) {
-                                // Usuń z serwera jeśli termin ma ID
+
                                 if (schedule.getId() != null) {
                                     attendanceService.removeAttendanceAsync(
                                             student.getIndexNumber(),
@@ -1399,14 +1326,12 @@ public class GroupDetailController {
                                         return null;
                                     });
                                 }
-                                // Usuń lokalnie
                                 schedule.removeAttendance(student);
                             }
                         }
                         refreshSchedulesList();
                         updateCounts();
 
-                        // Pokaż potwierdzenie z dodatkowymi informacjami
                         StringBuilder confirmMessage = new StringBuilder();
                         confirmMessage.append("✅ Student ").append(student.getFullName()).append(" został usunięty z serwera!");
                         if (reason != null && !reason.isEmpty()) {
@@ -1422,10 +1347,10 @@ public class GroupDetailController {
                 })
                 .exceptionally(throwable -> {
                     javafx.application.Platform.runLater(() -> {
-                        // Usuń lokalnie mimo błędu serwera
+
                         students.remove(student);
 
-                        // Usuń studenta ze wszystkich terminów (tylko lokalnie)
+
                         for (ClassSchedule schedule : schedules) {
                             schedule.removeAttendance(student);
                         }
@@ -1465,22 +1390,10 @@ public class GroupDetailController {
         }
         logEntry.append("========================\n");
 
-        // Wyświetl w konsoli
         System.out.println(logEntry.toString());
 
         // TODO: Zapisz do pliku logów jeśli potrzebne
-        // appendToLogFile(logEntry.toString());
     }
-
-// Dodaj także import dla nowych klas JavaFX na górze pliku:
-/*
-import javafx.scene.control.ButtonBar;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.TextArea;
-*/
 
     @FXML
     protected void onRemoveScheduleClick() {
@@ -1597,7 +1510,6 @@ import javafx.scene.control.TextArea;
         alert.showAndWait();
     }
 
-    // Klasa StudentListCell
     private class StudentListCell extends ListCell<Student> {
         @Override
         protected void updateItem(Student student, boolean empty) {
@@ -1625,7 +1537,6 @@ import javafx.scene.control.TextArea;
         }
     }
 
-    // Klasa ScheduleListCell z informacjami o frekwencji i statusie serwera
     private class ScheduleListCell extends ListCell<ClassSchedule> {
         @Override
         protected void updateItem(ClassSchedule schedule, boolean empty) {
@@ -1643,7 +1554,6 @@ import javafx.scene.control.TextArea;
                 Label dateTimeLabel = new Label("Data: " + schedule.getFormattedStartTime() + " - " + schedule.getFormattedEndTime());
                 dateTimeLabel.getStyleClass().add("schedule-datetime");
 
-                // Status źródła
                 Label sourceLabel = new Label();
                 if (schedule.isFromServer()) {
                     sourceLabel.setText("🔵 Serwer (ID: " + schedule.getId() + ")");
@@ -1653,7 +1563,6 @@ import javafx.scene.control.TextArea;
                     sourceLabel.setStyle("-fx-text-fill: #E53E3E; -fx-font-size: 11px; -fx-font-weight: bold;");
                 }
 
-                // Wyświetlanie statystyk frekwencji
                 Label attendanceLabel = new Label(schedule.getAttendanceSummary());
                 if (schedule.getTotalAttendanceCount() > 0) {
                     attendanceLabel.setStyle("-fx-text-fill: #212529; -fx-font-weight: bold; -fx-font-size: 12px;");
@@ -1661,7 +1570,6 @@ import javafx.scene.control.TextArea;
                     attendanceLabel.setStyle("-fx-text-fill: #6C757D; -fx-font-style: italic; -fx-font-size: 12px;");
                 }
 
-                // Szczegółowe liczniki w kolorach
                 if (schedule.getTotalAttendanceCount() > 0) {
                     HBox statsBox = new HBox(10);
 
@@ -1680,12 +1588,10 @@ import javafx.scene.control.TextArea;
                     cellContent.getChildren().addAll(subjectLabel, dateTimeLabel, sourceLabel, attendanceLabel);
                 }
 
-                // Podpowiedź dla użytkownika
                 Label clickHintLabel = new Label("💡 Kliknij aby zarządzać frekwencją");
                 clickHintLabel.setStyle("-fx-text-fill: #6C757D; -fx-font-size: 10px; -fx-font-style: italic;");
                 cellContent.getChildren().add(clickHintLabel);
 
-                // Informacja o synchronizacji z serwerem
                 if (schedule.isFromServer()) {
                     Label syncLabel = new Label("🔄 Synchronizacja z serwerem dostępna");
                     syncLabel.setStyle("-fx-text-fill: #38A169; -fx-font-size: 9px; -fx-font-style: italic;");

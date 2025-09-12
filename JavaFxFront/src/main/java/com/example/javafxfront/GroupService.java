@@ -403,10 +403,8 @@ public class GroupService {
     public CompletableFuture<Boolean> deleteGroupAsync(String groupName) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                // Sprawdź różne warianty URL-a
                 String encodedName = java.net.URLEncoder.encode(groupName, "UTF-8");
 
-                // Lista możliwych endpointów do sprawdzenia
                 String[] possibleUrls = {
                         GROUPS_ENDPOINT + "/" + encodedName,           // /api/groups/nazwa
                         GROUPS_ENDPOINT + "/delete/" + encodedName,    // /api/groups/delete/nazwa
@@ -433,28 +431,20 @@ public class GroupService {
                         System.out.println("Status odpowiedzi: " + response.statusCode());
                         System.out.println("Treść odpowiedzi: '" + response.body() + "'");
 
-                        // Poprawiona logika statusów
                         if (response.statusCode() == 200 || response.statusCode() == 204) {
-                            // 200 OK - usunięto pomyślnie
-                            // 204 No Content - usunięto pomyślnie (bez treści odpowiedzi)
                             System.out.println("✅ Grupa została usunięta pomyślnie (status: " + response.statusCode() + ")");
                             return true;
 
                         } else if (response.statusCode() == 404) {
-                            // 404 Not Found - endpoint nie istnieje LUB grupa nie istnieje
                             System.out.println("❌ 404 - Endpoint nie istnieje lub grupa nie znaleziona na serwerze");
-                            // NIE TRAKTUJ JAKO SUKCES! Kontynuuj próby z innymi URL-ami
 
                         } else if (response.statusCode() == 405) {
-                            // 405 Method Not Allowed - serwer nie obsługuje DELETE na tym endpoincie
                             System.out.println("❌ 405 - Metoda DELETE nie jest obsługiwana na: " + url);
 
                         } else if (response.statusCode() >= 400 && response.statusCode() < 500) {
-                            // 4xx - błąd klienta
                             System.out.println("❌ Błąd klienta " + response.statusCode() + " dla URL: " + url);
 
                         } else if (response.statusCode() >= 500) {
-                            // 5xx - błąd serwera
                             System.out.println("❌ Błąd serwera " + response.statusCode() + " dla URL: " + url);
 
                         } else {
@@ -466,7 +456,6 @@ public class GroupService {
                     }
                 }
 
-                // Jeśli żaden URL nie zadziałał
                 System.err.println("❌ WSZYSTKIE URL-e niepomyślne - grupa nie została usunięta");
                 return false;
 
@@ -528,7 +517,6 @@ public class GroupService {
             try {
                 String encodedName = java.net.URLEncoder.encode(groupName, "UTF-8");
 
-                // Testuj różne metody HTTP i URL-e
                 String[] testUrls = {
                         GROUPS_ENDPOINT + "/" + encodedName,
                         GROUPS_ENDPOINT + "/delete/" + encodedName,
@@ -551,7 +539,6 @@ public class GroupService {
                                     .header("Accept", "application/json")
                                     .timeout(Duration.ofSeconds(10));
 
-                            // Ustaw metodę HTTP
                             switch (method) {
                                 case "DELETE":
                                     requestBuilder.DELETE();
@@ -572,7 +559,6 @@ public class GroupService {
                             System.out.println(result);
                             results.append(result).append("\n");
 
-                            // Jeśli status nie jest 404/405, endpoint może istnieć
                             if (response.statusCode() != 404 && response.statusCode() != 405) {
                                 System.out.println("⭐ POTENCJALNIE DZIAŁAJĄCY ENDPOINT: " + method + " " + url);
                             }
@@ -630,7 +616,6 @@ public class GroupService {
         });
     }
 
-    // === METODY PRYWATNE DO PARSOWANIA JSON ===
 
     /**
      * Parsuje JSON z listą grup z serwera do listy obiektów Group.
@@ -702,7 +687,6 @@ public class GroupService {
         return group;
     }
 
-    // === KLASY POMOCNICZE DO SERIALIZACJI - BEZ ADNOTACJI ===
 
     /**
      * Klasa reprezentująca grupę otrzymaną z serwera.
@@ -741,7 +725,6 @@ public class GroupService {
         public String specialization;
     }
 
-    // === CUSTOM EXCEPTION ===
 
     /**
      * Wyjątek rzucany gdy grupa o danej nazwie już istnieje w systemie.

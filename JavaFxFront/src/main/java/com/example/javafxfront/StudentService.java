@@ -768,8 +768,7 @@ public class StudentService {
             try {
                 String url = STUDENTS_ENDPOINT + "/remove-from-group/" + java.net.URLEncoder.encode(indexNumber, "UTF-8");
 
-                System.out.println("🔗 Wywołuję URL usuwania z grupy: " + url); // DEBUG
-
+                System.out.println("🔗 Wywołuję URL usuwania z grupy: " + url);
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .header("Content-Type", "application/json")
@@ -1024,7 +1023,6 @@ public class StudentService {
 
         /** Nazwa grupy (może być null) */
         public String groupName;
-        // BEZ POLA EMAIL - nie używane w tej aplikacji
     }
 
     /**
