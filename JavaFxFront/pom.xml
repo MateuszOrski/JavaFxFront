@@ -19,6 +19,8 @@
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
         <javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
+        <!-- DODANE: Wersja Maven JavaDoc Plugin dla Java 21 -->
+        <maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
     </properties>
 
     <dependencies>
@@ -235,6 +237,91 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- ========== MAVEN JAVADOC PLUGIN - DODANY ========== -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc-plugin.version}</version>
+                <configuration>
+                    <!-- Konfiguracja dla Java 21 -->
+                    <source>21</source>
+                    <target>21</target>
+                    <encoding>UTF-8</encoding>
+                    <charset>UTF-8</charset>
+                    <docencoding>UTF-8</docencoding>
+
+                    <!-- Tytuł dokumentacji -->
+                    <windowTitle>Dziennik Online - Dokumentacja API</windowTitle>
+                    <doctitle>Dziennik Online - System Zarządzania Grupami</doctitle>
+
+                    <!-- Włącz wszystkie informacje -->
+                    <show>private</show>
+                    <nohelp>true</nohelp>
+
+                    <!-- Opcje dla Java 21 -->
+                    <additionalJOptions>
+                        <additionalJOption>-J-Duser.language=pl</additionalJOption>
+                        <additionalJOption>-J-Duser.country=PL</additionalJOption>
+                    </additionalJOptions>
+
+                    <!-- Wyłącz ścisłe sprawdzanie JavaDoc dla Java 21 -->
+                    <doclint>none</doclint>
+                    <failOnError>false</failOnError>
+                    <failOnWarnings>false</failOnWarnings>
+
+                    <!-- Linki do zewnętrznych dokumentacji -->
+                    <links>
+                        <link>https://docs.oracle.com/en/java/javase/21/docs/api/</link>
+                        <link>https://openjfx.io/javadoc/21/</link>
+                        <link>https://junit.org/junit5/docs/current/api/</link>
+                        <link>https://fasterxml.github.io/jackson-databind/javadoc/2.16/</link>
+                    </links>
+
+                    <!-- Wyklucz testowe klasy z głównej dokumentacji -->
+                    <excludePackageNames>
+                        *.test.*:*.tests.*
+                    </excludePackageNames>
+
+                    <!-- Grupowanie pakietów -->
+                    <groups>
+                        <group>
+                            <title>Model Classes</title>
+                            <packages>com.example.javafxfront:com.example.javafxfront.model</packages>
+                        </group>
+                        <group>
+                            <title>Services</title>
+                            <packages>com.example.javafxfront.*Service</packages>
+                        </group>
+                        <group>
+                            <title>Controllers</title>
+                            <packages>com.example.javafxfront.*Controller</packages>
+                        </group>
+                    </groups>
+                </configuration>
+
+                <!-- Wykonania pluginu -->
+                <executions>
+                    <!-- Standardowa dokumentacja -->
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+
+                    <!-- Agregowana dokumentacja -->
+                    <execution>
+                        <id>aggregate</id>
+                        <goals>
+                            <goal>aggregate</goal>
+                        </goals>
+                        <phase>site</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- ======================================================= -->
+
         </plugins>
     </build>
 
@@ -257,8 +344,6 @@
                 </plugins>
             </build>
         </profile>
-
-
 
         <!-- Profil dla testów z pokryciem kodu -->
         <profile>
@@ -294,5 +379,72 @@
                 </plugins>
             </build>
         </profile>
+
+        <!-- ========== NOWY PROFIL: DOKUMENTACJA JAVADOC ========== -->
+        <profile>
+            <id>javadoc</id>
+            <build>
+                <plugins>
+                    <!-- Zaawansowana konfiguracja JavaDoc dla profilu javadoc -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <!-- Wszystkie szczegóły -->
+                            <show>private</show>
+                            <author>true</author>
+                            <version>true</version>
+                            <use>true</use>
+                            <splitindex>true</splitindex>
+                            <windowTitle>Dziennik Online - Pełna Dokumentacja API</windowTitle>
+
+                            <!-- Dodatkowe informacje -->
+                            <bottom>
+                                <![CDATA[
+                                Copyright &#169; 2024 Dziennik Online Team.
+                                Wygenerowano {currentDate} przez Maven JavaDoc Plugin.
+                                ]]>
+                            </bottom>
+
+                            <!-- Dodatkowe pliki -->
+                            <docfilessubdirs>true</docfilessubdirs>
+                            <includeDependencySources>false</includeDependencySources>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- ======================================================= -->
     </profiles>
+
+    <!-- ========== REPORTING SECTION - DODANA ========== -->
+    <reporting>
+        <plugins>
+            <!-- Maven Site Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.12.1</version>
+            </plugin>
+
+            <!-- JavaDoc dla raportu -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc-plugin.version}</version>
+                <configuration>
+                    <show>public</show>
+                    <doclint>none</doclint>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>javadoc</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+        </plugins>
+    </reporting>
+    <!-- ============================================== -->
 </project>

@@ -494,8 +494,6 @@ public class AttendanceReportController {
      *   <li><strong>totalStudentsLabel</strong> - "Liczba studentów: X"</li>
      *   <li><strong>totalSchedulesLabel</strong> - "Liczba terminów: X"</li>
      * </ul>
-     *
-     * @see #updateCounts()
      */
     private void updateHeader() {
         if (currentGroup != null) {
