@@ -50,7 +50,7 @@ public class GroupDetailController {
     @FXML private Button removeStudentButton;
     @FXML private Button removeScheduleButton;
     @FXML private Button backButton;
-    @FXML private Button showReportButton; // DODANE - przycisk dziennika
+    @FXML private Button showReportButton;
 
     @FXML private Button refreshStudentsButton;
     @FXML private Button refreshSchedulesButton;
@@ -88,7 +88,6 @@ public class GroupDetailController {
             removeScheduleButton.setDisable(newSelection == null);
         });
 
-        // Pojedyncze kliknięcie dla szczegółów terminu
         scheduleListView.setOnMouseClicked(event -> {
             ClassSchedule selectedSchedule = scheduleListView.getSelectionModel().getSelectedItem();
             if (selectedSchedule != null && event.getClickCount() == 1) {
@@ -165,7 +164,6 @@ public class GroupDetailController {
         studentCountLabel.setText("Liczba studentów: " + students.size());
         scheduleCountLabel.setText("Liczba terminów: " + schedules.size());
 
-        //czy można wygenerować dziennik obecności
         if (showReportButton != null) {
             boolean canGenerateReport = !students.isEmpty() && !schedules.isEmpty();
             showReportButton.setDisable(!canGenerateReport);
@@ -176,16 +174,16 @@ public class GroupDetailController {
                         .sum();
 
                 if (totalAttendanceEntries > 0) {
-                    showReportButton.setText("📊 Dziennik obecności (" + totalAttendanceEntries + ")");
+                    showReportButton.setText("Dziennik obecności (" + totalAttendanceEntries + ")");
                     showReportButton.setStyle(showReportButton.getStyle().replaceAll("-fx-background-color:[^;]*;", "") +
                             "; -fx-background-color: linear-gradient(to bottom, #38A169, #2F855A);");
                 } else {
-                    showReportButton.setText("📊 Dziennik obecności (pusty)");
+                    showReportButton.setText("Dziennik obecności (pusty)");
                     showReportButton.setStyle(showReportButton.getStyle().replaceAll("-fx-background-color:[^;]*;", "") +
                             "; -fx-background-color: linear-gradient(to bottom, #F56500, #DD6B20);");
                 }
             } else {
-                showReportButton.setText("📊 Dziennik obecności");
+                showReportButton.setText("Dziennik obecności");
             }
         }
     }
@@ -199,16 +197,16 @@ public class GroupDetailController {
 
     private void loadStudentsFromServer() {
         if (currentGroup == null) {
-            System.err.println("❌ Brak currentGroup - nie można załadować studentów");
+            System.err.println("Brak currentGroup - nie można załadować studentów");
             return;
         }
 
-        System.out.println("🔄 ŁADOWANIE STUDENTÓW dla grupy: '" + currentGroup.getName() + "'");
+        System.out.println("ŁADOWANIE STUDENTÓW dla grupy: '" + currentGroup.getName() + "'");
 
         studentService.getStudentsByGroupAsync(currentGroup.getName())
                 .thenAccept(serverStudents -> {
                     javafx.application.Platform.runLater(() -> {
-                        System.out.println("📥 Otrzymano " + serverStudents.size() + " studentów z serwera dla grupy: " + currentGroup.getName());
+                        System.out.println("Otrzymano " + serverStudents.size() + " studentów z serwera dla grupy: " + currentGroup.getName());
 
                         //szczegóły wszystkich studentów
                         System.out.println("=== LISTA STUDENTÓW Z SERWERA ===");
@@ -222,27 +220,27 @@ public class GroupDetailController {
 
                         int oldSize = students.size();
                         students.clear();
-                        System.out.println("🗑️ Wyczyszczono " + oldSize + " starych studentów z listy");
+                        System.out.println("🗑Wyczyszczono " + oldSize + " starych studentów z listy");
 
                         students.addAll(serverStudents);
                         System.out.println("➕ Dodano " + serverStudents.size() + " nowych studentów do listy");
 
                         studentsListView.refresh();
-                        System.out.println("🔄 Wymuszone odświeżenie ListView");
+                        System.out.println("Wymuszone odświeżenie ListView");
 
                         updateCounts();
 
                         if (serverStudents.isEmpty()) {
-                            System.out.println("⚠️ UWAGA: Brak studentów w grupie '" + currentGroup.getName() + "'");
-                            System.out.println("💡 Sprawdź czy studenci są rzeczywiście przypisani do tej grupy w bazie");
+                            System.out.println("⚠UWAGA: Brak studentów w grupie '" + currentGroup.getName() + "'");
+                            System.out.println("Sprawdź czy studenci są rzeczywiście przypisani do tej grupy w bazie");
                         } else {
-                            System.out.println("✅ Pomyślnie załadowano " + serverStudents.size() + " studentów dla grupy '" + currentGroup.getName() + "'");
+                            System.out.println("Pomyślnie załadowano " + serverStudents.size() + " studentów dla grupy '" + currentGroup.getName() + "'");
                         }
                     });
                 })
                 .exceptionally(throwable -> {
                     javafx.application.Platform.runLater(() -> {
-                        System.err.println("❌ Błąd ładowania studentów dla grupy '" + currentGroup.getName() + "': " + throwable.getMessage());
+                        System.err.println("Błąd ładowania studentów dla grupy '" + currentGroup.getName() + "': " + throwable.getMessage());
                         throwable.printStackTrace();
 
                         showAlert("Ostrzeżenie",
@@ -255,18 +253,17 @@ public class GroupDetailController {
 
     private void loadSchedulesFromServer() {
         if (currentGroup == null) {
-            System.err.println("❌ Brak currentGroup - nie można załadować terminów");
+            System.err.println("Brak currentGroup - nie można załadować terminów");
             return;
         }
 
-        System.out.println("🔄 ŁADOWANIE TERMINÓW dla grupy: '" + currentGroup.getName() + "'");
+        System.out.println("ŁADOWANIE TERMINÓW dla grupy: '" + currentGroup.getName() + "'");
 
         scheduleService.getSchedulesByGroupAsync(currentGroup.getName())
                 .thenAccept(serverSchedules -> {
                     javafx.application.Platform.runLater(() -> {
-                        System.out.println("📥 Otrzymano " + serverSchedules.size() + " terminów z serwera dla grupy: " + currentGroup.getName());
+                        System.out.println("Otrzymano " + serverSchedules.size() + " terminów z serwera dla grupy: " + currentGroup.getName());
 
-                        // Debug - wypisz szczegóły wszystkich terminów
                         System.out.println("=== LISTA TERMINÓW Z SERWERA ===");
                         for (int i = 0; i < serverSchedules.size(); i++) {
                             ClassSchedule schedule = serverSchedules.get(i);
@@ -277,12 +274,10 @@ public class GroupDetailController {
                         }
                         System.out.println("================================");
 
-                        // Wyczyść starą listę
                         int oldSize = schedules.size();
                         schedules.clear();
-                        System.out.println("🗑️ Wyczyszczono " + oldSize + " starych terminów z listy");
+                        System.out.println("🗑Wyczyszczono " + oldSize + " starych terminów z listy");
 
-                        // Dodaj nowe terminy
                         schedules.addAll(serverSchedules);
                         System.out.println("➕ Dodano " + serverSchedules.size() + " nowych terminów do listy");
 
@@ -291,27 +286,27 @@ public class GroupDetailController {
                             if (schedule.getId() != null) {
                                 loadAttendanceFromServerSilent(schedule);
                             } else {
-                                System.out.println("⚠️ Termin " + schedule.getSubject() + " nie ma ID - pomijam ładowanie obecności");
+                                System.out.println("⚠Termin " + schedule.getSubject() + " nie ma ID - pomijam ładowanie obecności");
                             }
                         }
 
                         // Wymuś odświeżenie ListView
                         scheduleListView.refresh();
-                        System.out.println("🔄 Wymuszone odświeżenie ListView terminów");
+                        System.out.println("Wymuszone odświeżenie ListView terminów");
 
                         updateCounts();
 
                         if (serverSchedules.isEmpty()) {
-                            System.out.println("⚠️ UWAGA: Brak terminów w grupie '" + currentGroup.getName() + "'");
-                            System.out.println("💡 Sprawdź czy terminy są rzeczywiście przypisane do tej grupy w bazie");
+                            System.out.println("UWAGA: Brak terminów w grupie '" + currentGroup.getName() + "'");
+                            System.out.println("Sprawdź czy terminy są rzeczywiście przypisane do tej grupy w bazie");
                         } else {
-                            System.out.println("✅ Pomyślnie załadowano " + serverSchedules.size() + " terminów dla grupy '" + currentGroup.getName() + "'");
+                            System.out.println("Pomyślnie załadowano " + serverSchedules.size() + " terminów dla grupy '" + currentGroup.getName() + "'");
                         }
                     });
                 })
                 .exceptionally(throwable -> {
                     javafx.application.Platform.runLater(() -> {
-                        System.err.println("❌ Błąd ładowania terminów dla grupy '" + currentGroup.getName() + "': " + throwable.getMessage());
+                        System.err.println("Błąd ładowania terminów dla grupy '" + currentGroup.getName() + "': " + throwable.getMessage());
                         throwable.printStackTrace();
 
                         showAlert("Ostrzeżenie",
@@ -324,12 +319,12 @@ public class GroupDetailController {
 
     private void loadAttendanceFromServerSilent(ClassSchedule schedule) {
         if (schedule.getId() != null) {
-            System.out.println("🔄 Ładuję obecności dla terminu: " + schedule.getSubject() + " (ID: " + schedule.getId() + ")");
+            System.out.println("Ładuję obecności dla terminu: " + schedule.getSubject() + " (ID: " + schedule.getId() + ")");
 
             attendanceService.getAttendancesByScheduleAsync(schedule.getId())
                     .thenAccept(serverAttendances -> {
                         javafx.application.Platform.runLater(() -> {
-                            System.out.println("📥 Otrzymano " + serverAttendances.size() + " obecności z serwera");
+                            System.out.println("Otrzymano " + serverAttendances.size() + " obecności z serwera");
 
                             schedule.getAttendances().clear();
 
@@ -346,9 +341,9 @@ public class GroupDetailController {
                                     localAttendance.setMarkedAt(serverAttendance.getMarkedAt());
 
                                     schedule.addAttendance(localAttendance);
-                                    System.out.println("✅ Dodano obecność: " + localStudent.getFullName() + " - " + serverAttendance.getStatus().getDisplayName());
+                                    System.out.println("Dodano obecność: " + localStudent.getFullName() + " - " + serverAttendance.getStatus().getDisplayName());
                                 } else {
-                                    System.out.println("⚠️ Nie znaleziono studenta: " + serverAttendance.getStudent().getFullName());
+                                    System.out.println("⚠Nie znaleziono studenta: " + serverAttendance.getStudent().getFullName());
                                 }
                             }
 
@@ -358,8 +353,7 @@ public class GroupDetailController {
                         });
                     })
                     .exceptionally(throwable -> {
-                        // Cicha obsługa błędów - tylko log do konsoli
-                        System.err.println("❌ Nie udało się załadować obecności z serwera dla terminu " +
+                        System.err.println("Nie udało się załadować obecności z serwera dla terminu " +
                                 schedule.getSubject() + ": " + throwable.getMessage());
                         return null;
                     });
@@ -550,7 +544,7 @@ public class GroupDetailController {
                         addStudentButton.setDisable(false);
                         addStudentButton.setText("Dodaj studenta");
 
-                        System.out.println("✅ Student zaktualizowany na serwerze: " + studentDisplayName);
+                        System.out.println("Student zaktualizowany na serwerze: " + studentDisplayName);
 
                         students.add(student);
                         System.out.println("➕ Dodano studenta do lokalnej listy");
@@ -577,7 +571,7 @@ public class GroupDetailController {
                         addStudentButton.setDisable(false);
                         addStudentButton.setText("Dodaj studenta");
 
-                        System.err.println("❌ Błąd aktualizacji studenta: " + updateThrowable.getMessage());
+                        System.err.println("Błąd aktualizacji studenta: " + updateThrowable.getMessage());
 
                         students.add(student);
                         animateButton(addStudentButton);
@@ -771,7 +765,7 @@ public class GroupDetailController {
                     new java.util.ArrayList<>(schedules));
 
             Stage reportStage = new Stage();
-            reportStage.setTitle("📊 Dziennik obecności - " + currentGroup.getName());
+            reportStage.setTitle("Dziennik obecności - " + currentGroup.getName());
             reportStage.setScene(new Scene(root, 1200, 800));
 
             reportStage.getScene().getStylesheets().add(
@@ -785,14 +779,14 @@ public class GroupDetailController {
 
             reportStage.show();
 
-            System.out.println("✅ Otwarto dziennik obecności dla grupy: " + currentGroup.getName());
-            System.out.println("📊 Studentów: " + students.size() + ", Terminów: " + schedules.size());
+            System.out.println("Otwarto dziennik obecności dla grupy: " + currentGroup.getName());
+            System.out.println("Studentów: " + students.size() + ", Terminów: " + schedules.size());
 
         } catch (Exception e) {
             e.printStackTrace();
             showAlert("Błąd", "Nie udało się otworzyć dziennika obecności:\n" + e.getMessage(),
                     Alert.AlertType.ERROR);
-            System.err.println("❌ Błąd otwierania dziennika: " + e.getMessage());
+            System.err.println("Błąd otwierania dziennika: " + e.getMessage());
         }
     }
 
@@ -953,7 +947,7 @@ public class GroupDetailController {
     }
 
     private void markAttendance(Student student, ClassSchedule schedule, Attendance.Status status, Label statusLabel) {
-        System.out.println("🔄 Oznaczam obecność: " + student.getFullName() + " - " + status.getDisplayName());
+        System.out.println("Oznaczam obecność: " + student.getFullName() + " - " + status.getDisplayName());
 
         Attendance attendance = new Attendance(student, schedule, status);
 
@@ -963,36 +957,36 @@ public class GroupDetailController {
         statusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: " + status.getColor() + ";");
 
         if (schedule.getId() != null) { // Tylko jeśli termin ma ID z serwera
-            System.out.println("📤 Wysyłam obecność na serwer...");
+            System.out.println("Wysyłam obecność na serwer...");
 
             attendanceService.markStudentAttendanceAsync(student, schedule.getId(), status, "")
                     .thenAccept(success -> {
                         javafx.application.Platform.runLater(() -> {
                             if (success) {
-                                System.out.println("✅ Obecność wysłana na serwer: " + student.getFullName() + " - " + status.getDisplayName());
+                                System.out.println("Obecność wysłana na serwer: " + student.getFullName() + " - " + status.getDisplayName());
 
                                 javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(1));
                                 pause.setOnFinished(e -> {
-                                    System.out.println("🔄 Auto-odświeżanie obecności z serwera...");
+                                    System.out.println("Auto-odświeżanie obecności z serwera...");
                                     loadAttendanceFromServerSilent(schedule);
                                 });
                                 pause.play();
 
                             } else {
-                                System.out.println("⚠️ Ostrzeżenie: Nie udało się wysłać obecności na serwer");
+                                System.out.println("⚠Ostrzeżenie: Nie udało się wysłać obecności na serwer");
                                 showAlert("Ostrzeżenie", "Obecność zapisana lokalnie, ale nie udało się wysłać na serwer", Alert.AlertType.WARNING);
                             }
                         });
                     })
                     .exceptionally(throwable -> {
                         javafx.application.Platform.runLater(() -> {
-                            System.err.println("❌ Błąd wysyłania obecności na serwer: " + throwable.getMessage());
+                            System.err.println("Błąd wysyłania obecności na serwer: " + throwable.getMessage());
                             showAlert("Błąd", "Obecność zapisana lokalnie, ale wystąpił błąd komunikacji z serwerem: " + throwable.getMessage(), Alert.AlertType.WARNING);
                         });
                         return null;
                     });
         } else {
-            System.out.println("ℹ️ Termin lokalny - obecność zapisana tylko lokalnie");
+            System.out.println("ℹTermin lokalny - obecność zapisana tylko lokalnie");
         }
 
         showAlert("Sukces", "Oznaczono " + student.getFullName() + " jako " + status.getDisplayName().toLowerCase(),
@@ -1000,7 +994,6 @@ public class GroupDetailController {
     }
 
     private void clearAttendance(Student student, ClassSchedule schedule, Label statusLabel) {
-        // Usuń lokalnie (natychmiastowa reakcja UI)
         schedule.removeAttendance(student);
 
         statusLabel.setText("Nie zaznaczono");
@@ -1011,20 +1004,20 @@ public class GroupDetailController {
                     .thenAccept(success -> {
                         javafx.application.Platform.runLater(() -> {
                             if (success) {
-                                System.out.println("✅ Obecność usunięta z serwera: " + student.getFullName());
+                                System.out.println("Obecność usunięta z serwera: " + student.getFullName());
                             } else {
-                                System.out.println("⚠️ Ostrzeżenie: Nie udało się usunąć obecności z serwera");
+                                System.out.println("⚠Ostrzeżenie: Nie udało się usunąć obecności z serwera");
                             }
                         });
                     })
                     .exceptionally(throwable -> {
                         javafx.application.Platform.runLater(() -> {
-                            System.err.println("❌ Błąd usuwania obecności z serwera: " + throwable.getMessage());
+                            System.err.println("Błąd usuwania obecności z serwera: " + throwable.getMessage());
                         });
                         return null;
                     });
         } else {
-            System.out.println("ℹ️ Termin lokalny - obecność usunięta tylko lokalnie");
+            System.out.println("Termin lokalny - obecność usunięta tylko lokalnie");
         }
 
         showAlert("Info", "Usunięto oznaczenie dla " + student.getFullName(), Alert.AlertType.INFORMATION);
@@ -1208,14 +1201,14 @@ public class GroupDetailController {
     private void performStudentRemovalFromGroup(Student student, String reason, String notes) {
         logStudentRemovalFromGroup(student, reason, notes);
 
-        System.out.println("🔄 ROZPOCZYNAM usuwanie studenta z grupy (nie z systemu)");
-        System.out.println("📋 Student: " + student.getFullName() + " (indeks: " + student.getIndexNumber() + ")");
-        System.out.println("📋 Grupa: " + currentGroup.getName());
+        System.out.println("ROZPOCZYNAM usuwanie studenta z grupy (nie z systemu)");
+        System.out.println("Student: " + student.getFullName() + " (indeks: " + student.getIndexNumber() + ")");
+        System.out.println("Grupa: " + currentGroup.getName());
 
         studentService.removeStudentFromGroupAsync(student.getIndexNumber())
                 .thenAccept(updatedStudent -> {
                     javafx.application.Platform.runLater(() -> {
-                        System.out.println("✅ Student usunięty z grupy na serwerze");
+                        System.out.println("Student usunięty z grupy na serwerze");
 
                         students.remove(student);
 

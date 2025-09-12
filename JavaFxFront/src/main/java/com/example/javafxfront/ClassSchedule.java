@@ -260,7 +260,7 @@ public class ClassSchedule {
         this.notes = notes;
         this.groupName = groupName;
         this.createdDate = LocalDateTime.now();
-        this.attendances = new ArrayList<>(); // DODANE
+        this.attendances = new ArrayList<>();
     }
 
     /**
@@ -498,7 +498,7 @@ public class ClassSchedule {
      * @see #addAttendance(Attendance)
      * @see #removeAttendance(Student)
      */
-    public void setAttendances(List<Attendance> attendances) { this.attendances = attendances; } // DODANE
+    public void setAttendances(List<Attendance> attendances) { this.attendances = attendances; }
 
     // === METODY FORMATOWANIA - Czytelna prezentacja dat i czasów ===
 

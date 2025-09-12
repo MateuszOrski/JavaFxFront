@@ -79,9 +79,9 @@ import java.util.stream.Collectors;
  *   <li><strong>Statystyki indywidualne</strong> - procent obecności dla każdego studenta</li>
  * </ul>
  *
- * @author System Team
+ * @author Mateusz Orski
  * @version 1.0
- * @since 2024
+ * @since 2025
  *
  * @see GroupDetailController
  * @see Attendance
@@ -554,10 +554,8 @@ public class AttendanceReportController {
         reportData.clear();
         attendanceTable.getColumns().clear();
 
-        // Dodaj podstawowe kolumny
         attendanceTable.getColumns().addAll(studentNameColumn, indexColumn);
 
-        // Dodaj kolumny dla każdego terminu
         for (int i = 0; i < schedules.size(); i++) {
             ClassSchedule schedule = schedules.get(i);
             TableColumn<AttendanceReportRow, String> column = new TableColumn<>(
@@ -571,7 +569,6 @@ public class AttendanceReportController {
                 return new javafx.beans.property.SimpleStringProperty(status);
             });
 
-            // Stylizacja kolumn
             column.setCellFactory(col -> new TableCell<AttendanceReportRow, String>() {
                 @Override
                 protected void updateItem(String status, boolean empty) {

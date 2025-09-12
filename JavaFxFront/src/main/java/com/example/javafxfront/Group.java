@@ -60,9 +60,9 @@ import java.time.format.DateTimeFormatter;
  *   <li>toString() generuje tekst dynamicznie przy każdym wywołaniu</li>
  * </ul>
  *
- * @author Dziennik Online Development Team
+ * @author Mateusz ORski
  * @version 1.0
- * @since 2024
+ * @since 2025
  *
  * @see Student Klasa studenta przypisanego do grupy
  * @see ClassSchedule Klasa terminu zajęć dla grupy
